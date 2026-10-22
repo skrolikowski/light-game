@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false # let macOS finish even if Linux fails
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        build_type: [Debug, Release]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # SDL needs windowing/audio dev headers on Linux; macOS ships them
+      - name: Install Linux deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
+            libxss-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev \
+            libasound2-dev libpulse-dev
+
+      - name: Install macOS deps
+        if: runner.os == 'macOS'
+        run: brew install ninja
+
+      # FetchContent downloads + builds SDL every time; cache it (works best once tags are pinned)
+      - uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: deps-${{ runner.os }}-${{ matrix.build_type }}-${{ hashFiles('CMakeLists.txt') }}
+
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        env:
+          SDL_VIDEODRIVER: dummy # CI runners have no display
+          SDL_AUDIODRIVER: dummy
+        run: ctest --test-dir build --output-on-failure
