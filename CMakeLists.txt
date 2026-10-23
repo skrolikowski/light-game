@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.25)
 project(light_game LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -16,6 +16,7 @@ if(NOT raylib_FOUND)
         raylib
         URL https://github.com/raysan5/raylib/archive/refs/tags/${RAYLIB_VERSION}.tar.gz
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+        SYSTEM
     )
     set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
     set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
@@ -37,7 +38,7 @@ target_link_libraries(src PUBLIC raylib)
 add_executable(${PROJECT_NAME} main.cpp)
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
-target_compile_options(src PRIVATE -Wall -Wextra -Wpedantic -Wshadow -Wconversion)
+target_compile_options(src PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE src)
 
@@ -49,10 +50,11 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     ${CMAKE_SOURCE_DIR}/res $<TARGET_FILE_DIR:${PROJECT_NAME}>/res)
 
 # -- Testing ----
-# option(BUILD_TESTING "Build unit tests" ON)
+option(BUILD_TESTING "Build unit tests" ON)
 
-# if(BUILD_TESTING)
-# enable_testing()
-# add_subdirectory(tests)
-# endif()
+if(BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
+
 # -- Testing ----
