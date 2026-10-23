@@ -1,6 +1,9 @@
 #include <raylib.h>
 
+#include <algorithm>
+
 #include "Game.h"
+#include "Loader.h"
 #include "Piece.h"
 
 Game::Game(int width, int height, const char *title)
@@ -9,8 +12,47 @@ Game::Game(int width, int height, const char *title)
     InitWindow(width, height, title);
     SetTargetFPS(60);
 
-    board_ = std::make_unique<Grid<Cell>>(Grid<Cell>{ { .x = 64.F, .y = 64.F }, 4, 4 });
-    simulate();
+    // load level
+    LoadLevel("res/levels/level_1.json", levelData_);
+
+    levelTitle_ = levelData_.value("title", "Default Title");
+    int rows = levelData_.at("grid").value("rows", 0);
+    int cols = levelData_.at("grid").value("cols", 0);
+    Vector2 origin{ 64.F, 64.F };
+
+    // Create game board..
+    board_ = std::make_unique<Grid<Cell>>(Grid<Cell>{ origin, rows, cols });
+
+    // Place pieces on board_..
+    const json &pieces = levelData_.at("pieces");
+    const int numPieces = static_cast<int>(pieces.size());
+    for (int i = 0; i < numPieces; ++i)
+    {
+        const json &pieceData = pieces.at(static_cast<unsigned long>(i));
+        Piece piece = ReadPiece(pieceData);
+
+        if (pieceData.contains("coords"))
+        {
+            // place on board_
+            Coords coords = {
+                .row = pieceData.value("coords.row", 0),
+                .col = pieceData.value("coords.col", 0),
+            };
+            board_->GetItem(coords).piece = piece;
+        }
+    }
+
+    // Set Inventory..
+    const json &inventory = levelData_.at("inventory");
+    const int numInventory = static_cast<int>(inventory.size());
+    for (int i = 0; i < numInventory; ++i)
+    {
+        const json &invData = pieces.at(static_cast<unsigned long>(i));
+        Piece piece = ReadPiece(invData);
+        int pieceCount = invData.value("count", 1);
+        Slot slot{ .piece = piece, .count = pieceCount };
+        inventory_.push_back(slot);
+    }
 }
 
 LightField Game::simulate()
@@ -19,13 +61,13 @@ LightField Game::simulate()
     int rows = board_->NumRows();
 
     bool isReady = false;
-    LightField f{ .grid = { rows, cols } };
+    LightField lightField{ .grid = { rows, cols } };
 
     do
     {
         int lightsSpreading = 0;
 
-        f.grid.ForEach(
+        lightField.grid.ForEach(
             [&](LightCell lc, Coords coords)
             {
                 // Ray meets Piece (maybe)..
@@ -45,7 +87,7 @@ LightField Game::simulate()
                                 .strength = ray.strength - 1,
                                 .in = ray.out,
                             };
-                            f.grid.GetItem(nextCoords).rays.push_back(nextRay);
+                            lightField.grid.GetItem(nextCoords).rays.push_back(nextRay);
 
                             lightsSpreading += 1;
                         }
@@ -58,6 +100,8 @@ LightField Game::simulate()
 
         isReady = lightsSpreading == 0;
     } while (!isReady);
+
+    return lightField;
 }
 
 void Game::Transform(const Piece &piece, LightCell &cell)

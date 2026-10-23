@@ -33,7 +33,7 @@ struct Cell
 struct Slot
 {
     Piece piece;
-    std::size_t count = 0;
+    int count = 0;
 };
 
 inline Coords Translate(AxisDirection dir, Coords coords)
@@ -83,7 +83,7 @@ template <typename T> class Grid
 
     template <typename F> void ForEach(F &&f)
     {
-        for (int i = 0; i < items_.size(); ++i)
+        for (std::size_t i = 0; i < items_.size(); ++i)
         {
             f(items_[i], convertIdexToCoords(i));
         }

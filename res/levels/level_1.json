@@ -1,0 +1,41 @@
+{
+    "title": "Red + Green = Yellow",
+    "grid": {
+        "rows": 8,
+        "cols": 8
+    },
+    "pieces": [
+        {
+            "type": "source",
+            "light": "red",
+            "direction": "south",
+            "strength": 4,
+            "coords": {
+                "row": 1,
+                "col": 1
+            }
+        },
+        {
+            "type": "wall",
+            "coords": {
+                "row": 2,
+                "col": 3
+            }
+        },
+        {
+            "type": "target",
+            "light": "yellow",
+            "coords": {
+                "row": 4,
+                "col": 4
+            }
+        }
+    ],
+    "inventory": [
+        {
+            "type": "mirror",
+            "rot": "/",
+            "count": 1
+        }
+    ]
+}

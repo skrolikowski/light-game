@@ -25,12 +25,21 @@ endif()
 
 # -- Find/Fetch RayLib ----
 
+# -- Find/Fetch nlohmann/json ----
+FetchContent_Declare(nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG v3.12.0
+    GIT_SHALLOW TRUE)
+FetchContent_MakeAvailable(nlohmann_json)
+
+# -- Find/Fetch nlohmann/json ----
+
 # -- Source Library ----
 add_library(src STATIC
     src/Game.cpp)
 
 target_include_directories(src PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(src PUBLIC raylib)
+target_link_libraries(src PUBLIC raylib nlohmann_json)
 
 # -- Source Library ----
 

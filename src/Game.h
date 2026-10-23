@@ -5,6 +5,9 @@
 
 #include "Grid.h"
 
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
 class Game
 {
   public:
@@ -20,7 +23,8 @@ class Game
 
     static void Transform(const Piece &piece, LightCell &cell);
 
-    std::string title_;
+    std::string levelTitle_;
+    json levelData_ = json::object();
     std::unique_ptr<Grid<Cell>> board_;
     std::vector<Slot> inventory_;
 };
