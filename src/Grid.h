@@ -4,6 +4,7 @@
 
 #include <vector>
 
+#include "Def.h"
 #include "Piece.h"
 
 struct Coords
@@ -58,6 +59,11 @@ inline Coords Translate(AxisDirection dir, Coords coords)
     return coords;
 }
 
+inline Rectangle Inset(Rectangle r, float padding)
+{
+    return { r.x + padding, r.y + padding, r.width - (2 * padding), r.height - (2 * padding) };
+}
+
 template <typename T> class Grid
 {
   public:
@@ -66,6 +72,16 @@ template <typename T> class Grid
     Grid(Vector2 origin, int rows, int cols) : origin_(origin), rows_(rows), cols_(cols)
     {
         createGrid();
+    }
+
+    [[nodiscard]] Rectangle CellRect(Coords coords) const noexcept
+    {
+        return {
+            .x = origin_.x + (static_cast<float>(coords.col) * GRID_CELL_SIZE),
+            .y = origin_.y + (static_cast<float>(coords.row) * GRID_CELL_SIZE),
+            .width = GRID_CELL_SIZE,
+            .height = GRID_CELL_SIZE,
+        };
     }
 
     [[nodiscard]] int NumCols() const noexcept { return cols_; }
@@ -84,9 +100,13 @@ template <typename T> class Grid
     template <typename F> void ForEach(F &&f)
     {
         for (std::size_t i = 0; i < items_.size(); ++i)
-        {
             f(items_[i], convertIdexToCoords(i));
-        }
+    }
+
+    template <typename F> void ForEach(F &&f) const
+    {
+        for (std::size_t i = 0; i < items_.size(); ++i)
+            f(items_[i], convertIdexToCoords(i));
     }
 
     friend bool operator==(const Grid &, const Grid &) = default;
@@ -111,8 +131,8 @@ template <typename T> class Grid
     [[nodiscard]] Coords convertIdexToCoords(std::size_t index) const noexcept
     {
         return {
-            .row = static_cast<int>(index % static_cast<std::size_t>(cols_)),
-            .col = static_cast<int>(index / static_cast<std::size_t>(cols_)),
+            .row = static_cast<int>(index / static_cast<std::size_t>(cols_)),
+            .col = static_cast<int>(index % static_cast<std::size_t>(cols_)),
         };
     }
 };

@@ -42,13 +42,8 @@ template <typename T> void Grid<T>::Draw() const
     {
         for (int c = 0; c < cols_; ++c)
         {
-            Rectangle rect{
-                .x = static_cast<float>(c) * GRID_CELL_SIZE + origin_.x,
-                .y = static_cast<float>(r) * GRID_CELL_SIZE + origin_.y,
-                .width = GRID_CELL_SIZE,
-                .height = GRID_CELL_SIZE,
-            };
-            DrawRectangleLinesEx(rect, lineThickness, gridColor);
+            Coords coords = { .row = r, .col = c };
+            DrawRectangleLinesEx(CellRect(coords), lineThickness, gridColor);
         }
     }
 }

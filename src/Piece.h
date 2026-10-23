@@ -112,7 +112,7 @@ struct Combiner
 using Piece = std::variant<std::monostate, Wall, Source, Target, Mirror, Booster, Inverter, Filter,
     Tint, Combiner>;
 
-inline bool is_empty(const Piece &p)
+inline bool IsPieceEmpty(const Piece &p)
 {
     return std::holds_alternative<std::monostate>(p);
 }

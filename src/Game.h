@@ -19,6 +19,7 @@ class Game
   private:
     void update(float dt);
     void draw() const;
+    void drawPiece(const Piece &piece, Rectangle bounds) const;
     LightField simulate();
 
     static void Transform(const Piece &piece, LightCell &cell);

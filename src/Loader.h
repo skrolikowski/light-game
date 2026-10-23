@@ -28,10 +28,47 @@ inline void LoadLevel(const std::string &path, json &data)
     }
 }
 
+inline Color ToRaylibColor(LightColor color)
+{
+    switch (color)
+    {
+        case LightColor::Red:
+            return RED;
+        case LightColor::Green:
+            return GREEN;
+        case LightColor::Blue:
+            return BLUE;
+        case LightColor::Yellow:
+            return YELLOW;
+        case LightColor::Magenta:
+            return MAGENTA;
+        case LightColor::Cyan:
+            return SKYBLUE;
+        case LightColor::White:
+            return WHITE;
+        default:
+            return BLACK;
+    }
+}
+
 inline LightColor ReadColor(const std::string &name)
 {
     if (name == "red")
         return LightColor::Red;
+    if (name == "green")
+        return LightColor::Green;
+    if (name == "blue")
+        return LightColor::Blue;
+    if (name == "yellow")
+        return LightColor::Yellow;
+    if (name == "magenta")
+        return LightColor::Magenta;
+    if (name == "cyan")
+        return LightColor::Cyan;
+    if (name == "white")
+        return LightColor::White;
+
+    return LightColor::None;
 }
 
 inline AxisDirection ReadAxisDirection(const std::string &d)

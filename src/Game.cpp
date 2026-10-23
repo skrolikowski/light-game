@@ -33,11 +33,11 @@ Game::Game(int width, int height, const char *title)
 
         if (pieceData.contains("coords"))
         {
+            int row = pieceData.at("coords").value("row", 0);
+            int col = pieceData.at("coords").value("col", 0);
+
             // place on board_
-            Coords coords = {
-                .row = pieceData.value("coords.row", 0),
-                .col = pieceData.value("coords.col", 0),
-            };
+            Coords coords = { .row = row, .col = col };
             board_->GetItem(coords).piece = piece;
         }
     }
@@ -47,7 +47,7 @@ Game::Game(int width, int height, const char *title)
     const int numInventory = static_cast<int>(inventory.size());
     for (int i = 0; i < numInventory; ++i)
     {
-        const json &invData = pieces.at(static_cast<unsigned long>(i));
+        const json &invData = inventory.at(static_cast<unsigned long>(i));
         Piece piece = ReadPiece(invData);
         int pieceCount = invData.value("count", 1);
         Slot slot{ .piece = piece, .count = pieceCount };
@@ -330,15 +330,73 @@ void Game::Run()
 
 void Game::update(float /*dt*/) {}
 
+void Game::drawPiece(const Piece &piece, Rectangle bounds) const
+{
+    const Rectangle r = Inset(bounds, GRID_CELL_SIZE * 0.1F);
+    const Vector2 center{ r.x + (r.width / 2), r.y + (r.height / 2) };
+
+    std::visit(
+        Overload{
+            [](std::monostate) { /*Draw nothing*/ },
+            [&](const Wall &)
+            {
+                DrawRectangleRounded(r, 0.2F, 20, BLACK);
+                // DrawRectangleRec(r, 5,BLACK);
+            },
+            [&](const Source &o) 
+            {
+                DrawCircleV(center, r.width / 3, ToRaylibColor(o.color));
+            },
+            [&](const Target &o)
+            {
+                DrawRing(center, r.width / 3, r.width / 2, 0, 360, 32, ToRaylibColor(o.color));
+            },
+            [&](const Mirror &o)
+            {
+                DrawRectangleRoundedLinesEx(r, 0.2F, 20, 4.F, BLACK);
+                
+                const bool fwd = o.rot == MirrorRotation::ForwardSlash;
+                Vector2 a{ r.x, fwd ? r.y + r.height : r.y };
+                Vector2 b{ r.x + r.width, fwd ? r.y : r.y + r.height };
+                DrawLineEx(a, b, 4.F, BLACK);
+            },
+            [&](const Booster &o)
+            {
+                DrawRectangleRoundedLinesEx(r, 0.2F, 20, 4.F, BLACK);
+                std::string s = "+" + std::to_string(o.strength);
+                DrawText(s.c_str(), center.x, center.y, 10, WHITE);
+            },
+            [&](const Inverter &)
+            {
+                
+            },
+            [&](const Filter &o)
+            {
+                DrawRing(center, r.width / 4, r.width / 3, 0, 360, 32, ToRaylibColor(o.keep));
+            },
+            [&](const Tint &o)
+            {
+                DrawCircleV(center, r.width / 3, ToRaylibColor(o.add));
+            },
+            [&](const Combiner &o)
+            {
+                
+            },
+        },
+        piece);
+}
+
 void Game::draw() const
 {
     BeginDrawing();
-    ClearBackground(RAYWHITE);
+    ClearBackground(DARKGRAY);
 
     board_->Draw();
 
+    // Draw pieces..
+    board_->ForEach(
+        [&](const Cell &cell, Coords coords) { drawPiece(cell.piece, board_->CellRect(coords)); });
+
     DrawFPS(SCREEN_WIDTH - 90, 10);
     EndDrawing();
-
-    DrawText("raylib 3D grid example", 10, 10, 20, DARKGRAY);
 }

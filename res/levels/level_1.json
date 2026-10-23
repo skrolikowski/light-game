@@ -7,7 +7,7 @@
     "pieces": [
         {
             "type": "source",
-            "light": "red",
+            "color": "red",
             "direction": "south",
             "strength": 4,
             "coords": {
@@ -16,7 +16,16 @@
             }
         },
         {
-            "type": "wall",
+            "type": "booster",
+            "strength": 5,
+            "coords": {
+                "row": 3,
+                "col": 3
+            }
+        },
+        {
+            "type": "mirror",
+            "rot": "/",
             "coords": {
                 "row": 2,
                 "col": 3
@@ -24,7 +33,7 @@
         },
         {
             "type": "target",
-            "light": "yellow",
+            "color": "yellow",
             "coords": {
                 "row": 4,
                 "col": 4
