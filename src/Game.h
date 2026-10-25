@@ -26,7 +26,9 @@ class Game
     void draw() const;
     void drawInventorySlot(const Slot &slot, Rectangle bounds) const;
     void drawPiece(const Piece &piece, Rectangle bounds) const;
+    void drawLightRay(const LightRay &ray, Rectangle bounds) const;
 
+    LightField lightField_;
     std::string levelTitle_;
     json levelData_ = json::object();
     std::unique_ptr<Grid<Cell>> board_;

@@ -42,7 +42,8 @@ Game::Game(int width, int height, const char *title)
         }
     }
 
-    LightField lf = Simulate(board_.get());
+    // TODO: only fire on "dirty"..
+    lightField_ = Simulate(board_.get());
 
     // -- Inventory ----
     const json &inventory = levelData_.at("inventory");
@@ -405,6 +406,65 @@ void Game::drawPiece(const Piece &piece, Rectangle bounds) const
         piece);
 }
 
+void Game::drawLightRay(const LightRay &ray, Rectangle bounds) const
+{
+    const Vector2 center{ bounds.x + (bounds.width / 2), bounds.y + (bounds.height / 2) };
+    const Vector2 north{ center.x, bounds.y };
+    const Vector2 south{ center.x, bounds.y + bounds.height };
+    const Vector2 east{ bounds.x + bounds.width, center.y };
+    const Vector2 west{ bounds.x, center.y };
+    const Color rayColor = ToRaylibColor(ray.color);
+    const int glowThick = 16;
+    const int rayThick = 5;
+    const float strenghtFactor = static_cast<float>(ray.strength) / SOURCE_STRENGTH_MAX;
+
+    // draw in
+    switch (ray.in)
+    {
+        case AxisDirection::North:
+            DrawLineEx(north, center, glowThick, Fade(rayColor, 0.18F * strenghtFactor));
+            DrawLineEx(north, center, rayThick, Fade(rayColor, strenghtFactor));
+            break;
+        case AxisDirection::South:
+            DrawLineEx(south, center, glowThick, Fade(rayColor, 0.18F * strenghtFactor));
+            DrawLineEx(south, center, rayThick, Fade(rayColor, strenghtFactor));
+            break;
+        case AxisDirection::East:
+            DrawLineEx(east, center, glowThick, Fade(rayColor, 0.18F * strenghtFactor));
+            DrawLineEx(east, center, rayThick, Fade(rayColor, strenghtFactor));
+            break;
+        case AxisDirection::West:
+            DrawLineEx(west, center, glowThick, Fade(rayColor, 0.18F * strenghtFactor));
+            DrawLineEx(west, center, rayThick, Fade(rayColor, strenghtFactor));
+            break;
+        default:
+            break;
+    }
+
+    // draw out
+    switch (ray.out)
+    {
+        case AxisDirection::North:
+            DrawLineEx(center, north, glowThick, Fade(rayColor, 0.18F * strenghtFactor));
+            DrawLineEx(center, north, rayThick, Fade(rayColor, strenghtFactor));
+            break;
+        case AxisDirection::South:
+            DrawLineEx(center, south, glowThick, Fade(rayColor, 0.18F * strenghtFactor));
+            DrawLineEx(center, south, rayThick, Fade(rayColor, strenghtFactor));
+            break;
+        case AxisDirection::East:
+            DrawLineEx(center, east, glowThick, Fade(rayColor, 0.18F * strenghtFactor));
+            DrawLineEx(center, east, rayThick, Fade(rayColor, strenghtFactor));
+            break;
+        case AxisDirection::West:
+            DrawLineEx(center, west, glowThick, Fade(rayColor, 0.18F * strenghtFactor));
+            DrawLineEx(center, west, rayThick, Fade(rayColor, strenghtFactor));
+            break;
+        default:
+            break;
+    }
+}
+
 void Game::draw() const
 {
     BeginDrawing();
@@ -424,6 +484,22 @@ void Game::draw() const
 
             DrawRectangleLinesEx(bounds, 1.F, LIGHTGRAY);
             drawPiece(cell.piece, bounds);
+        });
+
+    lightField_.grid->ForEach(
+        [&](const LightCell &cell, Coords coords)
+        {
+            Vector2 topLeft = board_->CellTopLeft(coords);
+            Rectangle bounds = {
+                .x = topLeft.x,
+                .y = topLeft.y,
+                .width = GRID_CELL_SIZE,
+                .height = GRID_CELL_SIZE,
+            };
+            for (const LightRay &ray : cell.rays)
+            {
+                drawLightRay(ray, bounds);
+            }
         });
 
     // Draw bag_ w/ Slots..
