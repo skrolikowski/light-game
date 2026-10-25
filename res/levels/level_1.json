@@ -1,8 +1,8 @@
 {
     "title": "Red + Green = Yellow",
     "grid": {
-        "rows": 8,
-        "cols": 8
+        "rows": 4,
+        "cols": 4
     },
     "pieces": [
         {
@@ -11,32 +11,24 @@
             "direction": "south",
             "strength": 4,
             "coords": {
-                "row": 1,
-                "col": 1
-            }
-        },
-        {
-            "type": "booster",
-            "strength": 5,
-            "coords": {
-                "row": 3,
-                "col": 3
+                "row": 0,
+                "col": 0
             }
         },
         {
             "type": "mirror",
-            "rot": "/",
+            "rot": "\\",
             "coords": {
                 "row": 2,
-                "col": 3
+                "col": 0
             }
         },
         {
             "type": "target",
-            "color": "yellow",
+            "color": "red",
             "coords": {
-                "row": 4,
-                "col": 4
+                "row": 2,
+                "col": 2
             }
         }
     ],
@@ -45,6 +37,13 @@
             "type": "mirror",
             "rot": "/",
             "count": 1
+        },
+        {
+            "type": "source",
+            "color": "green",
+            "strength": 1,
+            "direction": "north",
+            "count": 2
         }
     ]
 }

@@ -137,7 +137,7 @@ inline Piece ReadPiece(const json &data)
 
     if (type == "combiner")
     {
-        const AxisDirection dir = ReadAxisDirection(data.value("direction", "none"));
+        const AxisDirection dir = ReadAxisDirection(data.value("out", "none"));
         return Combiner{ .out = dir };
     }
 

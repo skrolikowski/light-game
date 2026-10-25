@@ -17,3 +17,7 @@ include(GoogleTest)
 add_executable(color_test "ColorTest.cpp")
 target_link_libraries(color_test PRIVATE src GTest::gtest_main)
 gtest_discover_tests(color_test)
+
+add_executable(piece_test "PieceTest.cpp")
+target_link_libraries(piece_test PRIVATE src GTest::gtest_main)
+gtest_discover_tests(piece_test)

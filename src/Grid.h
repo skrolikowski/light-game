@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <raylib.h>
 
 #include <vector>
@@ -19,7 +20,7 @@ struct Coords
         col += o.col;
         return *this;
     }
-    bool operator==(const Coords &) const = default;
+    auto operator<=>(const Coords &) const = default;
 };
 
 struct Cell
@@ -74,13 +75,11 @@ template <typename T> class Grid
         createGrid();
     }
 
-    [[nodiscard]] Rectangle CellRect(Coords coords) const noexcept
+    [[nodiscard]] Vector2 CellTopLeft(Coords coords) const noexcept
     {
         return {
             .x = origin_.x + (static_cast<float>(coords.col) * GRID_CELL_SIZE),
             .y = origin_.y + (static_cast<float>(coords.row) * GRID_CELL_SIZE),
-            .width = GRID_CELL_SIZE,
-            .height = GRID_CELL_SIZE,
         };
     }
 
@@ -89,7 +88,6 @@ template <typename T> class Grid
 
     [[nodiscard]] const T &GetItem(Coords coords) const;
     [[nodiscard]] T &GetItem(Coords coords);
-    void Draw() const;
 
     static bool InBounds(const Grid *grid, Coords coords)
     {
@@ -137,25 +135,18 @@ template <typename T> class Grid
     }
 };
 
-// using LightRays = std::array<LightRay, 4>;
-
-// struct LightField
-// {
-//     Grid<LightRays> in;
-//     Grid<LightRays> out;
-//     bool isStable = true;
-// };
-
 using LightRays = std::vector<LightRay>;
+using CombinerOutputs = std::map<Coords, LightRay>;
+
 struct LightCell
 {
     std::vector<LightRay> rays;
-    bool isStable = true;
 };
 
 struct LightField
 {
-    Grid<LightCell> grid;
+    std::unique_ptr<Grid<LightCell>> grid;
+    bool isStable = true;
 };
 
 #include "Grid.tpp"
