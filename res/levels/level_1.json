@@ -9,10 +9,20 @@
             "type": "source",
             "color": "red",
             "direction": "south",
-            "strength": 4,
+            "strength": 6,
             "coords": {
                 "row": 0,
                 "col": 0
+            }
+        },
+        {
+            "type": "source",
+            "color": "blue",
+            "direction": "south",
+            "strength": 5,
+            "coords": {
+                "row": 0,
+                "col": 1
             }
         },
         {
@@ -21,6 +31,14 @@
             "coords": {
                 "row": 2,
                 "col": 0
+            }
+        },
+        {
+            "type": "combiner",
+            "out": "east",
+            "coords": {
+                "row": 2,
+                "col": 1
             }
         },
         {

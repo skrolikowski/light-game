@@ -26,6 +26,7 @@ struct LightRay
 {
     LightColor color = LightColor::None;
     int strength = 0;
+    int strengthMax = 0;
     AxisDirection in = AxisDirection::None;
     AxisDirection out = AxisDirection::None;
     bool hasSpread = false;

@@ -53,7 +53,7 @@ Game::Game(int width, int height, const char *title)
     bag_ = std::make_unique<Grid<Slot>>(Grid<Slot>{ bagOrigin, numInventory, 1 });
     int bagIndex = 0;
     bag_->ForEach(
-        [&](Slot &s, Coords coords)
+        [&](Slot &s, Coords)
         {
             const json &invData = inventory.at(static_cast<unsigned long>(bagIndex));
             Piece piece = ReadPiece(invData);
@@ -201,6 +201,7 @@ LightField Game::Simulate(Grid<Cell> *grid)
                             continue;
                         merged.color = merged.color | r.color;
                         merged.strength = std::max(merged.strength, r.strength);
+                        merged.strengthMax = merged.strength;
                     }
                     if (merged.strength > 0)
                         next[coords] = merged;
@@ -237,6 +238,7 @@ void Game::Transform(const Piece &piece, LightCell &cell)
                 LightRay source = {
                     .color = o.color,
                     .strength = o.strength,
+                    .strengthMax = o.strength,
                     .out = o.out,
                 };
                 cell.rays.push_back(source);
@@ -409,60 +411,49 @@ void Game::drawPiece(const Piece &piece, Rectangle bounds) const
 void Game::drawLightRay(const LightRay &ray, Rectangle bounds) const
 {
     const Vector2 center{ bounds.x + (bounds.width / 2), bounds.y + (bounds.height / 2) };
-    const Vector2 north{ center.x, bounds.y };
-    const Vector2 south{ center.x, bounds.y + bounds.height };
-    const Vector2 east{ bounds.x + bounds.width, center.y };
-    const Vector2 west{ bounds.x, center.y };
-    const Color rayColor = ToRaylibColor(ray.color);
-    const int glowThick = 16;
-    const int rayThick = 5;
-    const float strenghtFactor = static_cast<float>(ray.strength) / SOURCE_STRENGTH_MAX;
 
-    // draw in
-    switch (ray.in)
+    // Edge midpoint for a direction (center if None)..
+    auto edge = [&](AxisDirection dir) -> Vector2
     {
-        case AxisDirection::North:
-            DrawLineEx(north, center, glowThick, Fade(rayColor, 0.18F * strenghtFactor));
-            DrawLineEx(north, center, rayThick, Fade(rayColor, strenghtFactor));
-            break;
-        case AxisDirection::South:
-            DrawLineEx(south, center, glowThick, Fade(rayColor, 0.18F * strenghtFactor));
-            DrawLineEx(south, center, rayThick, Fade(rayColor, strenghtFactor));
-            break;
-        case AxisDirection::East:
-            DrawLineEx(east, center, glowThick, Fade(rayColor, 0.18F * strenghtFactor));
-            DrawLineEx(east, center, rayThick, Fade(rayColor, strenghtFactor));
-            break;
-        case AxisDirection::West:
-            DrawLineEx(west, center, glowThick, Fade(rayColor, 0.18F * strenghtFactor));
-            DrawLineEx(west, center, rayThick, Fade(rayColor, strenghtFactor));
-            break;
-        default:
-            break;
-    }
+        switch (dir)
+        {
+            case AxisDirection::North:
+                return { center.x, bounds.y };
+            case AxisDirection::South:
+                return { center.x, bounds.y + bounds.height };
+            case AxisDirection::East:
+                return { bounds.x + bounds.width, center.y };
+            case AxisDirection::West:
+                return { bounds.x, center.y };
+            default:
+                return center;
+        }
+    };
+    const Vector2 in = edge(ray.in);
+    const Vector2 out = edge(ray.out);
 
-    // draw out
-    switch (ray.out)
+    // Weak rays fade, but never vanish entirely..
+    float strength = std::clamp(static_cast<float>(ray.strength / ray.strengthMax), 0.25F, 1.F);
+    float pulseBase = 0.9F;
+    float pulseAmp = 0.1F;
+    float pulseFreq = 4.F;
+    strength *= pulseBase + (pulseAmp * sinf(GetTime() * pulseFreq));
+    const Color baseColor = ToRaylibColor(ray.color);
+
+    // Rounded capsule: in => center => out
+    auto stroke = [&](float thick, Color c)
     {
-        case AxisDirection::North:
-            DrawLineEx(center, north, glowThick, Fade(rayColor, 0.18F * strenghtFactor));
-            DrawLineEx(center, north, rayThick, Fade(rayColor, strenghtFactor));
-            break;
-        case AxisDirection::South:
-            DrawLineEx(center, south, glowThick, Fade(rayColor, 0.18F * strenghtFactor));
-            DrawLineEx(center, south, rayThick, Fade(rayColor, strenghtFactor));
-            break;
-        case AxisDirection::East:
-            DrawLineEx(center, east, glowThick, Fade(rayColor, 0.18F * strenghtFactor));
-            DrawLineEx(center, east, rayThick, Fade(rayColor, strenghtFactor));
-            break;
-        case AxisDirection::West:
-            DrawLineEx(center, west, glowThick, Fade(rayColor, 0.18F * strenghtFactor));
-            DrawLineEx(center, west, rayThick, Fade(rayColor, strenghtFactor));
-            break;
-        default:
-            break;
-    }
+        DrawLineEx(in, center, thick, c);
+        DrawLineEx(center, out, thick, c);
+        DrawCircleV(center, thick / 2, c);
+    };
+
+    // Soft glow (wide + faint => narrow + bright), then a hot core..
+    stroke(32.F, Fade(baseColor, 0.10F * strength));
+    stroke(24.F, Fade(baseColor, 0.25F * strength));
+    stroke(18.F, Fade(baseColor, 0.40F * strength));
+    stroke(12.F, Fade(baseColor, 0.60F * strength));
+    stroke(8.F, Fade(ColorBrightness(baseColor, 0.5F), 0.75F * strength));
 }
 
 void Game::draw() const
@@ -472,7 +463,7 @@ void Game::draw() const
 
     // Draw board_ w/ Pieces..
     board_->ForEach(
-        [&](const Cell &cell, Coords coords)
+        [&](const Cell &, Coords coords)
         {
             Vector2 topLeft = board_->CellTopLeft(coords);
             Rectangle bounds = {
@@ -483,9 +474,11 @@ void Game::draw() const
             };
 
             DrawRectangleLinesEx(bounds, 1.F, LIGHTGRAY);
-            drawPiece(cell.piece, bounds);
         });
 
+    // Draw light (additive so overlapping rays glow)..
+    BeginBlendMode(BLEND_ADDITIVE);
+    // ...additive blending...
     lightField_.grid->ForEach(
         [&](const LightCell &cell, Coords coords)
         {
@@ -500,6 +493,22 @@ void Game::draw() const
             {
                 drawLightRay(ray, bounds);
             }
+        });
+    // ...additive blending...
+    EndBlendMode();
+
+    // Draw pieces on top of light..
+    board_->ForEach(
+        [&](const Cell &cell, Coords coords)
+        {
+            Vector2 topLeft = board_->CellTopLeft(coords);
+            Rectangle bounds = {
+                .x = topLeft.x,
+                .y = topLeft.y,
+                .width = GRID_CELL_SIZE,
+                .height = GRID_CELL_SIZE,
+            };
+            drawPiece(cell.piece, bounds);
         });
 
     // Draw bag_ w/ Slots..

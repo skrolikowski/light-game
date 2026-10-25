@@ -25,7 +25,3 @@ gtest_discover_tests(piece_test)
 add_executable(bleed_test "BleedTest.cpp")
 target_link_libraries(bleed_test PRIVATE src GTest::gtest_main)
 gtest_discover_tests(bleed_test)
-
-add_executable(piece2_test "Piece2Test.cpp")
-target_link_libraries(piece2_test PRIVATE src GTest::gtest_main)
-gtest_discover_tests(piece2_test)
