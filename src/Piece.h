@@ -104,7 +104,7 @@ struct Source
 {
     LightColor color;
     AxisDirection out;
-    int strength;
+    int strength = 5;
 };
 
 struct Target
