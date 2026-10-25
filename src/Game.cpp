@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "Def.h"
 #include "Game.h"
 #include "Loader.h"
 #include "Piece.h"
@@ -21,7 +22,12 @@ Game::Game(int width, int height, const char *title)
     Vector2 origin{ 64.F, 64.F };
 
     // Create game board..
-    board_ = std::make_unique<Grid<Cell>>(Grid<Cell>{ origin, rows, cols });
+    board_ = std::make_unique<Grid<Cell>>(Grid<Cell>{
+        origin,
+        rows,
+        cols,
+        Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE },
+    });
 
     // Place pieces on board_..
     const json &pieces = levelData_.at("pieces");
@@ -50,12 +56,19 @@ Game::Game(int width, int height, const char *title)
     const int numInventory = static_cast<int>(inventory.size());
     // Create slot bag..
     Vector2 bagOrigin{ SCREEN_WIDTH - (GRID_SLOT_WIDTH + 64.F), 64.F };
-    bag_ = std::make_unique<Grid<Slot>>(Grid<Slot>{ bagOrigin, numInventory, 1 });
+    bag_ = std::make_unique<Grid<Slot>>(Grid<Slot>{
+        bagOrigin,
+        numInventory,
+        1,
+        Vector2{ GRID_SLOT_WIDTH, GRID_SLOT_HEIGHT },
+    });
+
     int bagIndex = 0;
     bag_->ForEach(
         [&](Slot &s, Coords)
         {
-            const json &invData = inventory.at(static_cast<unsigned long>(bagIndex));
+            const json &invData =
+                inventory.at(static_cast<unsigned long>(bagIndex));
             Piece piece = ReadPiece(invData);
             int pieceCount = invData.value("count", 1);
             s = Slot{ .piece = piece, .count = pieceCount };
@@ -70,6 +83,11 @@ Game::Game(int width, int height, const char *title)
     //     Slot slot{ .piece = piece, .count = pieceCount };
     //     inventory_.push_back(slot);
     // }
+}
+
+Game::~Game()
+{
+    CloseWindow();
 }
 
 bool Game::Bleed(Grid<Cell> *grid, Grid<LightCell> *lightGrid, Coords coords)
@@ -115,6 +133,7 @@ LightField Game::Propagate(Grid<Cell> *grid, const CombinerOutputs &outputs)
         .grid = std::make_unique<Grid<LightCell>>(Grid<LightCell>{
             grid->NumRows(),
             grid->NumCols(),
+            Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE },
         }),
     };
 
@@ -197,7 +216,8 @@ LightField Game::Simulate(Grid<Cell> *grid)
 
                     for (const LightRay &r : lc.rays)
                     {
-                        if (r.in == AxisDirection::None || r.in == combinerPiece->out)
+                        if (r.in == AxisDirection::None ||
+                            r.in == combinerPiece->out)
                             continue;
                         merged.color = merged.color | r.color;
                         merged.strength = std::max(merged.strength, r.strength);
@@ -244,7 +264,10 @@ void Game::Transform(const Piece &piece, LightCell &cell)
                 cell.rays.push_back(source);
             },
             [&](const Mirror &o)
-            { each([&](LightRay &r) { r.out = RotateDirection(r.in, o.rot); }); },
+            {
+                each(
+                    [&](LightRay &r) { r.out = RotateDirection(r.in, o.rot); });
+            },
             [&](const Booster &o)
             {
                 each(
@@ -290,11 +313,6 @@ void Game::Transform(const Piece &piece, LightCell &cell)
         piece);
 }
 
-Game::~Game()
-{
-    CloseWindow();
-}
-
 void Game::Run()
 {
     while (!WindowShouldClose())
@@ -306,7 +324,7 @@ void Game::Run()
 
 void Game::update(float /*dt*/) {}
 
-void Game::drawInventorySlot(const Slot &slot, Rectangle bounds) const
+void Game::DrawInventorySlot(const Slot &slot, Rectangle bounds)
 {
     DrawRectangleRoundedLinesEx(bounds, 0.2F, 20, 1.F, BLACK);
     DrawRectangleRounded(bounds, 0.2F, 20, (slot.count > 0 ? WHITE : DARKGRAY));
@@ -319,8 +337,11 @@ void Game::drawInventorySlot(const Slot &slot, Rectangle bounds) const
             .width = GRID_CELL_SIZE,
             .height = GRID_CELL_SIZE,
         },
-        GRID_CELL_SIZE * 0.1F);
-    drawPiece(slot.piece, icon);
+        Vector2{
+            GRID_CELL_SIZE * 0.1F,
+            GRID_CELL_SIZE * 0.1F,
+        });
+    DrawPiece(slot.piece, icon);
 
     // Draw Quantity..
     auto posX = static_cast<int>(bounds.x + (bounds.width * 0.66F));
@@ -329,9 +350,10 @@ void Game::drawInventorySlot(const Slot &slot, Rectangle bounds) const
     DrawText(text.c_str(), posX, posY, 24, BLACK);
 }
 
-void Game::drawPiece(const Piece &piece, Rectangle bounds) const
+void Game::DrawPiece(const Piece &piece, Rectangle bounds)
 {
-    const Rectangle r = Inset(bounds, GRID_CELL_SIZE * 0.1F);
+    const Rectangle r =
+        Inset(bounds, Vector2{ GRID_CELL_SIZE * 0.1F, GRID_CELL_SIZE * 0.1F });
     const Vector2 center{ r.x + (r.width / 2), r.y + (r.height / 2) };
 
     std::visit(
@@ -339,45 +361,47 @@ void Game::drawPiece(const Piece &piece, Rectangle bounds) const
             [](std::monostate) { /*Draw nothing*/ },
             [&](const Wall &)
             {
-                DrawRectangleRounded(r, 0.2F, 20, BLACK);
-                // DrawRectangleRec(r, 5,BLACK);
+        DrawRectangleRounded(r, 0.2F, 20, BLACK);
+        // DrawRectangleRec(r, 5,BLACK);
             },
             [&](const Source &o) 
             {
-                float wedge = 30.F;
-                float radMin = r.width / 4.F;
-                float radMax = r.width / 2.F;
-                float rad = radMin + ((radMax-radMin) * static_cast<float>(o.strength) / SOURCE_STRENGTH_MAX);
-                const float facing = DirectionToAngle(o.out);
+        float wedge = 30.F;
+        float radMin = r.width / 4.F;
+        float radMax = r.width / 2.F;
+        float rad =
+            radMin + ((radMax - radMin) * static_cast<float>(o.strength) /
+                         SOURCE_STRENGTH_MAX);
+        const float facing = DirectionToAngle(o.out);
 
-                DrawCircleSector(center, rad, facing - wedge, facing + wedge, 20,
-                    ToRaylibColor(o.color));
+        DrawCircleSector(center, rad, facing - wedge, facing + wedge, 20,
+            ToRaylibColor(o.color));
             },
             [&](const Target &o)
             {
-                float radMin = r.width / 4.F;
-                float radMax = r.width / 3.F;
-                DrawRing(center, radMin, radMax, 0, 360, 32, ToRaylibColor(o.color));
+        float radMin = r.width / 4.F;
+        float radMax = r.width / 3.F;
+        DrawRing(center, radMin, radMax, 0, 360, 32, ToRaylibColor(o.color));
             },
             [&](const Mirror &o)
             {
-                DrawRectangleRoundedLinesEx(r, 0.2F, 20, 4.F, BLACK);
-                
-                const bool fwd = o.rot == MirrorRotation::ForwardSlash;
-                Vector2 a{ r.x, fwd ? r.y + r.height : r.y };
-                Vector2 b{ r.x + r.width, fwd ? r.y : r.y + r.height };
-                DrawLineEx(a, b, 4.F, BLACK);
+        DrawRectangleRoundedLinesEx(r, 0.2F, 20, 4.F, BLACK);
+
+        const bool fwd = o.rot == MirrorRotation::ForwardSlash;
+        Vector2 a{ r.x, fwd ? r.y + r.height : r.y };
+        Vector2 b{ r.x + r.width, fwd ? r.y : r.y + r.height };
+        DrawLineEx(a, b, 4.F, BLACK);
             },
             [&](const Booster &o)
             {
-                // if (o.out == AxisDirection::None)
-                // {
-                //     DrawCircleV(center, rad, ToRaylibColor(o.color));
-                //     return;
-                // }
-                DrawRectangleRoundedLinesEx(r, 0.2F, 20, 4.F, BLACK);
-                std::string s = "+" + std::to_string(o.strength);
-                DrawText(s.c_str(), center.x, center.y, 10, WHITE);
+        // if (o.out == AxisDirection::None)
+        // {
+        //     DrawCircleV(center, rad, ToRaylibColor(o.color));
+        //     return;
+        // }
+        DrawRectangleRoundedLinesEx(r, 0.2F, 20, 4.F, BLACK);
+        std::string s = "+" + std::to_string(o.strength);
+        DrawText(s.c_str(), center.x, center.y, 10, WHITE);
             },
             [&](const Inverter &)
             {
@@ -385,32 +409,38 @@ void Game::drawPiece(const Piece &piece, Rectangle bounds) const
             },
             [&](const Filter &o)
             {
-                DrawRing(center, r.width / 4, r.width / 3, 0, 360, 32, ToRaylibColor(o.keep));
+        DrawRing(center, r.width / 4, r.width / 3, 0, 360, 32,
+            ToRaylibColor(o.keep));
             },
             [&](const Tint &o)
             {
-                DrawCircleV(center, r.width / 3, ToRaylibColor(o.add));
+        DrawCircleV(center, r.width / 3, ToRaylibColor(o.add));
             },
             [&](const Combiner &o)
             {
-                //TODO: Rounded Rectangle Border
-                //TODO: Tiny o.color Triangle pointing in out direction 
-                // Triangle pointing East, relative to center; rotated to face o.out
-                const float h = r.width / 2.F;
-                const float angle = DirectionToAngle(o.out) * DEG2RAD;
-                const Vector2 tip = Vector2Add(center, Vector2Rotate({ h, 0.F }, angle));
-                const Vector2 baseA = Vector2Add(center, Vector2Rotate({ -h, -h }, angle));
-                const Vector2 baseB = Vector2Add(center, Vector2Rotate({ -h, h }, angle));
-                DrawTriangle(tip, baseA, baseB, BLACK); // raylib needs counter-clockwise order
+        // TODO: Rounded Rectangle Border
+        // TODO: Tiny o.color Triangle pointing in out direction
+        //  Triangle pointing East, relative to center; rotated to face o.out
+        const float h = r.width / 2.F;
+        const float angle = DirectionToAngle(o.out) * DEG2RAD;
+        const Vector2 tip =
+            Vector2Add(center, Vector2Rotate({ h, 0.F }, angle));
+        const Vector2 baseA =
+            Vector2Add(center, Vector2Rotate({ -h, -h }, angle));
+        const Vector2 baseB =
+            Vector2Add(center, Vector2Rotate({ -h, h }, angle));
+        DrawTriangle(
+            tip, baseA, baseB, BLACK); // raylib needs counter-clockwise order
             },
             // [](auto&) {},
         },
         piece);
 }
 
-void Game::drawLightRay(const LightRay &ray, Rectangle bounds) const
+void Game::DrawLightRay(const LightRay &ray, Rectangle bounds)
 {
-    const Vector2 center{ bounds.x + (bounds.width / 2), bounds.y + (bounds.height / 2) };
+    const Vector2 center{ bounds.x + (bounds.width / 2),
+        bounds.y + (bounds.height / 2) };
 
     // Edge midpoint for a direction (center if None)..
     auto edge = [&](AxisDirection dir) -> Vector2
@@ -433,7 +463,8 @@ void Game::drawLightRay(const LightRay &ray, Rectangle bounds) const
     const Vector2 out = edge(ray.out);
 
     // Weak rays fade, but never vanish entirely..
-    float strength = std::clamp(static_cast<float>(ray.strength / ray.strengthMax), 0.25F, 1.F);
+    float strength = std::clamp(
+        static_cast<float>(ray.strength / ray.strengthMax), 0.25F, 1.F);
     float pulseBase = 0.9F;
     float pulseAmp = 0.1F;
     float pulseFreq = 4.F;
@@ -456,74 +487,36 @@ void Game::drawLightRay(const LightRay &ray, Rectangle bounds) const
     stroke(8.F, Fade(ColorBrightness(baseColor, 0.5F), 0.75F * strength));
 }
 
+void Game::drawLightField() const
+{
+    BeginBlendMode(BLEND_ADDITIVE);
+
+    lightField_.grid->ForEach(
+        [&](const LightCell &cell, Coords coords)
+        {
+            for (const LightRay &ray : cell.rays)
+                DrawLightRay(ray, board_->GetRect(coords));
+        });
+
+    EndBlendMode();
+}
+
 void Game::draw() const
 {
     BeginDrawing();
     ClearBackground(DARKGRAY);
 
-    // Draw board_ w/ Pieces..
-    board_->ForEach(
-        [&](const Cell &, Coords coords)
-        {
-            Vector2 topLeft = board_->CellTopLeft(coords);
-            Rectangle bounds = {
-                .x = topLeft.x,
-                .y = topLeft.y,
-                .width = GRID_CELL_SIZE,
-                .height = GRID_CELL_SIZE,
-            };
+    board_->Draw();
 
-            DrawRectangleLinesEx(bounds, 1.F, LIGHTGRAY);
-        });
-
-    // Draw light (additive so overlapping rays glow)..
-    BeginBlendMode(BLEND_ADDITIVE);
-    // ...additive blending...
-    lightField_.grid->ForEach(
-        [&](const LightCell &cell, Coords coords)
-        {
-            Vector2 topLeft = board_->CellTopLeft(coords);
-            Rectangle bounds = {
-                .x = topLeft.x,
-                .y = topLeft.y,
-                .width = GRID_CELL_SIZE,
-                .height = GRID_CELL_SIZE,
-            };
-            for (const LightRay &ray : cell.rays)
-            {
-                drawLightRay(ray, bounds);
-            }
-        });
-    // ...additive blending...
-    EndBlendMode();
+    drawLightField();
 
     // Draw pieces on top of light..
-    board_->ForEach(
-        [&](const Cell &cell, Coords coords)
-        {
-            Vector2 topLeft = board_->CellTopLeft(coords);
-            Rectangle bounds = {
-                .x = topLeft.x,
-                .y = topLeft.y,
-                .width = GRID_CELL_SIZE,
-                .height = GRID_CELL_SIZE,
-            };
-            drawPiece(cell.piece, bounds);
-        });
+    board_->ForEach([&](const Cell &cell, Coords coords)
+        { DrawPiece(cell.piece, board_->GetRect(coords)); });
 
     // Draw bag_ w/ Slots..
-    bag_->ForEach(
-        [&](const Slot &s, Coords coords)
-        {
-            Vector2 topLeft = bag_->CellTopLeft(coords);
-            Rectangle bounds = {
-                .x = topLeft.x,
-                .y = topLeft.y,
-                .width = GRID_SLOT_WIDTH,
-                .height = GRID_SLOT_HEIGHT,
-            };
-            drawInventorySlot(s, bounds);
-        });
+    bag_->ForEach([&](const Slot &slot, Coords coords)
+        { DrawInventorySlot(slot, board_->GetRect(coords)); });
 
     DrawFPS(SCREEN_WIDTH - 90, 10);
     EndDrawing();

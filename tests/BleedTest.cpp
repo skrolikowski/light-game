@@ -1,14 +1,15 @@
 #include <gtest/gtest.h>
 
 #include "../src/Color.h"
+#include "../src/Def.h"
 #include "../src/Game.h"
 #include "../src/Grid.h"
 #include "../src/Piece.h"
 
 TEST(Bleed, BleedOutOfBounds)
 {
-    Grid<Cell> board{ 2, 2 };
-    Grid<LightCell> lc{ 2, 2 };
+    Grid<Cell> board{ 2, 2, Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE } };
+    Grid<LightCell> lc{ 2, 2, Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE } };
 
     Coords coords{ .row = 0, .col = 0 };
     LightCell &cell = lc.GetItem(coords);
@@ -20,8 +21,8 @@ TEST(Bleed, BleedOutOfBounds)
 
 TEST(Bleed, NatrualBleed)
 {
-    Grid<Cell> board{ 2, 2 };
-    Grid<LightCell> lc{ 2, 2 };
+    Grid<Cell> board{ 2, 2, Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE } };
+    Grid<LightCell> lc{ 2, 2, Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE } };
 
     // Start LightCell..
     Coords startCoords{ .row = 0, .col = 0 };

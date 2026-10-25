@@ -21,12 +21,14 @@ class Game
     static void Transform(const Piece &piece, LightCell &cell);
     static LightField Simulate(Grid<Cell> *grid);
 
+    static void DrawInventorySlot(const Slot &slot, Rectangle bounds);
+    static void DrawPiece(const Piece &piece, Rectangle bounds);
+    static void DrawLightRay(const LightRay &ray, Rectangle bounds);
+
   private:
     void update(float dt);
     void draw() const;
-    void drawInventorySlot(const Slot &slot, Rectangle bounds) const;
-    void drawPiece(const Piece &piece, Rectangle bounds) const;
-    void drawLightRay(const LightRay &ray, Rectangle bounds) const;
+    void drawLightField() const;
 
     LightField lightField_;
     std::string levelTitle_;

@@ -2,10 +2,8 @@
 
 #include <map>
 #include <raylib.h>
-
 #include <vector>
 
-#include "Def.h"
 #include "Piece.h"
 
 struct Coords
@@ -13,7 +11,10 @@ struct Coords
     int row = 0;
     int col = 0;
 
-    Coords operator+(Coords o) const { return { .row = row + o.row, .col = col + o.col }; }
+    Coords operator+(Coords o) const
+    {
+        return { .row = row + o.row, .col = col + o.col };
+    }
     Coords operator+=(Coords o)
     {
         row += o.row;
@@ -60,34 +61,36 @@ inline Coords Translate(AxisDirection dir, Coords coords)
     return coords;
 }
 
-inline Rectangle Inset(Rectangle r, float padding)
+inline Rectangle Inset(Rectangle r, Vector2 pad)
 {
-    return { r.x + padding, r.y + padding, r.width - (2 * padding), r.height - (2 * padding) };
+    return { r.x + pad.x, r.y + pad.y, r.width - (2 * pad.x),
+        r.height - (2 * pad.y) };
 }
 
 template <typename T> class Grid
 {
   public:
     Grid() = default;
-    Grid(int rows, int cols) : rows_(rows), cols_(cols) { createGrid(); }
-    Grid(Vector2 origin, int rows, int cols) : origin_(origin), rows_(rows), cols_(cols)
+    Grid(int rows, int cols, Vector2 size)
+        : rows_(rows), cols_(cols), size_(size)
+    {
+        createGrid();
+    }
+    Grid(Vector2 origin, int rows, int cols, Vector2 size)
+        : origin_(origin), rows_(rows), cols_(cols), size_(size)
     {
         createGrid();
     }
 
-    [[nodiscard]] Vector2 CellTopLeft(Coords coords) const noexcept
-    {
-        return {
-            .x = origin_.x + (static_cast<float>(coords.col) * GRID_CELL_SIZE),
-            .y = origin_.y + (static_cast<float>(coords.row) * GRID_CELL_SIZE),
-        };
-    }
+    [[nodiscard]] const T &GetItem(Coords coords) const;
+    [[nodiscard]] T &GetItem(Coords coords);
+    [[nodiscard]] Vector2 GetSize() const noexcept { return size_; }
+    [[nodiscard]] Coords GetCoordsAt(Vector2) const noexcept;
+    [[nodiscard]] Vector2 GetTopLeft(Coords coords) const noexcept;
+    [[nodiscard]] Rectangle GetRect(Coords coords) const noexcept;
 
     [[nodiscard]] int NumCols() const noexcept { return cols_; }
     [[nodiscard]] int NumRows() const noexcept { return rows_; }
-
-    [[nodiscard]] const T &GetItem(Coords coords) const;
-    [[nodiscard]] T &GetItem(Coords coords);
 
     static bool InBounds(const Grid *grid, Coords coords)
     {
@@ -107,6 +110,8 @@ template <typename T> class Grid
             f(items_[i], convertIdexToCoords(i));
     }
 
+    void Draw() const;
+
     friend bool operator==(const Grid &, const Grid &) = default;
 
   private:
@@ -114,13 +119,10 @@ template <typename T> class Grid
     Vector2 origin_{};
     int rows_ = 0;
     int cols_ = 0;
+    Vector2 size_{};
 
     void createGrid();
 
-    [[nodiscard]] bool isInBounds(Coords coords) const
-    {
-        return coords.row >= 0 && coords.row < rows_ && coords.col >= 0 && coords.col < cols_;
-    }
     [[nodiscard]] std::size_t convertCoordsToIndex(Coords coords) const
     {
         return static_cast<std::size_t>(coords.col + (coords.row * cols_));

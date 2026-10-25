@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "../src/Color.h"
+#include "../src/Def.h"
 #include "../src/Game.h"
 #include "../src/Grid.h"
 #include "../src/Piece.h"
@@ -8,8 +9,16 @@
 class PieceFixture : public ::testing::Test
 {
   protected:
-    Grid<Cell> board{ 2, 2 };
-    Grid<LightCell> lc{ 2, 2 };
+    Grid<Cell> board{
+        2,
+        2,
+        Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE },
+    };
+    Grid<LightCell> lc{
+        2,
+        2,
+        Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE },
+    };
 
     static LightRay TransformOne(const Piece &piece, LightRay in)
     {
