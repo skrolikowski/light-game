@@ -10,7 +10,7 @@ using json = nlohmann::json;
 #include "Color.h"
 #include "Piece.h"
 
-inline void LoadLevel(const std::string &path, json &data)
+inline void LoadLevelData(const std::string &path, json &data)
 {
     std::ifstream file(path);
     if (!file)

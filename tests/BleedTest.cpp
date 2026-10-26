@@ -6,11 +6,23 @@
 #include "../src/Grid.h"
 #include "../src/Piece.h"
 
-TEST(Bleed, BleedOutOfBounds)
+class BleedFixture : public ::testing::Test
 {
-    Grid<Cell> board{ 2, 2, Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE } };
-    Grid<LightCell> lc{ 2, 2, Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE } };
+  protected:
+    Grid<Cell> board{
+        2,
+        2,
+        Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE },
+    };
+    Grid<LightCell> lc{
+        2,
+        2,
+        Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE },
+    };
+};
 
+TEST_F(BleedFixture, OutOfBounds)
+{
     Coords coords{ .row = 0, .col = 0 };
     LightCell &cell = *lc.GetItem(coords);
     cell.rays.push_back({ .out = AxisDirection::North });
@@ -19,11 +31,8 @@ TEST(Bleed, BleedOutOfBounds)
     EXPECT_FALSE(hasBleed);
 }
 
-TEST(Bleed, NatrualBleed)
+TEST_F(BleedFixture, NatrualBleed)
 {
-    Grid<Cell> board{ 2, 2, Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE } };
-    Grid<LightCell> lc{ 2, 2, Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE } };
-
     // Start LightCell..
     Coords startCoords{ .row = 0, .col = 0 };
     LightCell &startCell = *lc.GetItem(startCoords);

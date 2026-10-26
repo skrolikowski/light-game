@@ -198,8 +198,8 @@ inline void TransformPiece(const Piece &piece, std::vector<LightRay> &rays)
 
 inline void DrawPiece(const Piece &piece, Rectangle bounds)
 {
-    const Rectangle r =
-        Inset(bounds, Vector2{ GRID_CELL_SIZE * 0.1F, GRID_CELL_SIZE * 0.1F });
+    const Vector2 pad{ GRID_CELL_SIZE * 0.25F, GRID_CELL_SIZE * 0.25F };
+    const Rectangle r = Inset(bounds, pad);
     const Vector2 center{ r.x + (r.width / 2), r.y + (r.height / 2) };
 
     std::visit(
@@ -207,21 +207,31 @@ inline void DrawPiece(const Piece &piece, Rectangle bounds)
             [](std::monostate) { /*Draw nothing*/ },
             [&](const Wall &)
             {
-        DrawRectangleRounded(r, 0.2F, 20, BLACK);
-        // DrawRectangleRec(r, 5,BLACK);
+                DrawRectangleRoundedLinesEx(r,0.2F,20,2.F,LIGHTGRAY);
+                DrawRectangleRounded(r, 0.2F, 20, DARKGRAY);
             },
             [&](const Source &o) 
             {
-        float wedge = 30.F;
-        float radMin = r.width / 4.F;
-        float radMax = r.width / 2.F;
-        float rad =
-            radMin + ((radMax - radMin) * static_cast<float>(o.strength) /
-                         RAY_STRENGTH_MAX);
-        const float facing = DirectionToAngle(o.out);
+                float wedge = 45.F;
+                const float facing = DirectionToAngle(o.out);
+                const float startAngle = facing + wedge;
+                const float endAngle = facing + 270 + wedge;
+                float radMin = r.width * 0.5F;
+                float radMax = r.width * 0.8F;
+                Color baseColor = ToRaylibColor(o.color);
+                auto stroke = [&](float innerRadius, float outerRadius, Color c)
+                {
+                    DrawRing(center, innerRadius, outerRadius, startAngle, endAngle, 0, c);
+                };
+                // float rad =
+                //     radMin + ((radMax - radMin) * static_cast<float>(o.strength) /
+                //                 RAY_STRENGTH_MAX);
 
-        DrawCircleSector(center, rad, facing - wedge, facing + wedge, 20,
-            ToRaylibColor(o.color));
+                // DrawCircleSector(center, rad, facing - wedge, facing + wedge, 0, ToRaylibColor(o.color));
+            
+                stroke(r.width * 0.6F, r.width * 0.8F, Fade(baseColor, 0.10F));
+                stroke(r.width * 0.5F, r.width * 0.6F, Fade(baseColor, 0.25F));
+                stroke(r.width * 0.4F, r.width * 0.5F, Fade(baseColor, 0.5F));
             },
             [&](const Target &o)
             {

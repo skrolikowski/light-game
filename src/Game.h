@@ -4,6 +4,7 @@
 #include <string>
 
 #include "Grid.h"
+#include "Level.h"
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
@@ -47,7 +48,12 @@ class Game
     Game(int width, int height, const char *title);
     ~Game();
 
+    void LoadLevel(std::string path);
     void Run();
+    bool TrackMouseInput(const Vector2 &v);
+
+    [[nodiscard]] Grid<Cell> *GetBoard() const noexcept { return board_.get(); }
+    [[nodiscard]] Grid<Slot> *GetBag() const noexcept { return bag_.get(); }
 
     static LightFieldResult CheckLightField(
         const Grid<Cell> *grid, const LightField &field);
@@ -61,15 +67,13 @@ class Game
 
   private:
     void update(float dt);
-    bool trackInput();
     void draw() const;
     void drawLightField() const;
 
     Drag drag_;
+    Level level_;
     LightField lightField_;
     LightFieldResult lightFieldResult_{};
-    std::string levelTitle_;
-    json levelData_ = json::object();
     std::unique_ptr<Grid<Cell>> board_;
     std::unique_ptr<Grid<Slot>> bag_;
 };

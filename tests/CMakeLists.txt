@@ -21,3 +21,7 @@ gtest_discover_tests(piece_test)
 add_executable(bleed_test "BleedTest.cpp")
 target_link_libraries(bleed_test PRIVATE src GTest::gtest_main)
 gtest_discover_tests(bleed_test)
+
+add_executable(input_test "InputTest.cpp")
+target_link_libraries(input_test PRIVATE src GTest::gtest_main)
+gtest_discover_tests(input_test)

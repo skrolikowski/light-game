@@ -1,9 +1,9 @@
 #include <algorithm>
+#include <map>
 #include <raylib.h>
 
 #include "Def.h"
 #include "Game.h"
-#include "Loader.h"
 #include "Piece.h"
 
 Game::Game(int width, int height, const char *title)
@@ -11,69 +11,49 @@ Game::Game(int width, int height, const char *title)
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
     InitWindow(width, height, title);
     SetTargetFPS(60);
-
-    // load level
-    LoadLevel("res/levels/level_1.json", levelData_);
-
-    levelTitle_ = levelData_.value("title", "Default Title");
-    int rows = levelData_.at("grid").value("rows", 0);
-    int cols = levelData_.at("grid").value("cols", 0);
-    Vector2 origin{ 64.F, 64.F };
-
-    // Create game board..
-    board_ = std::make_unique<Grid<Cell>>(Grid<Cell>{
-        origin,
-        rows,
-        cols,
-        Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE },
-    });
-
-    // Place pieces on board_..
-    const json &pieces = levelData_.at("pieces");
-    const int numPieces = static_cast<int>(pieces.size());
-    for (int i = 0; i < numPieces; ++i)
-    {
-        const json &pieceData = pieces.at(static_cast<unsigned long>(i));
-        Piece piece = ReadPiece(pieceData);
-
-        if (pieceData.contains("coords"))
-        {
-            int row = pieceData.at("coords").value("row", 0);
-            int col = pieceData.at("coords").value("col", 0);
-
-            // place on board_
-            Coords coords = { .row = row, .col = col };
-            board_->GetItem(coords)->piece = piece;
-        }
-    }
-
-    lightField_ = Simulate(board_.get());
-    lightFieldResult_ = CheckLightField(board_.get(), lightField_);
-
-    // -- Inventory ----
-    const json &inventory = levelData_.at("inventory");
-    const int numInventory = static_cast<int>(inventory.size());
-    // Create slot bag..
-    Vector2 bagOrigin{ SCREEN_WIDTH - (GRID_SLOT_WIDTH + 64.F), 64.F };
-    Vector2 bagSize{ GRID_SLOT_WIDTH, GRID_SLOT_HEIGHT };
-    bag_ = std::make_unique<Grid<Slot>>(
-        Grid<Slot>{ bagOrigin, numInventory, 1, bagSize });
-    int bagIndex = 0;
-    bag_->ForEach(
-        [&](Slot &s, Coords)
-        {
-            const json &invData =
-                inventory.at(static_cast<unsigned long>(bagIndex));
-            Piece piece = ReadPiece(invData);
-            int pieceCount = invData.value("count", 1);
-            s = Slot{ .piece = piece, .count = pieceCount };
-            bagIndex++;
-        });
 }
 
 Game::~Game()
 {
     CloseWindow();
+}
+
+void Game::LoadLevel(std::string path)
+{
+    level_ = Level{ path };
+
+    board_ = std::make_unique<Grid<Cell>>(Grid<Cell>{
+        Vector2{ 64.F, 64.F },
+        level_.GetRows(),
+        level_.GetCols(),
+        Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE },
+    });
+
+    // Add pieces to board..
+    std::map<Coords, Piece> pieces = level_.GetBoardPieces();
+    for (auto [coords, piece] : pieces)
+        board_->GetItem(coords)->piece = piece;
+
+    // Add inventory..
+    Vector2 bagOrigin{ SCREEN_WIDTH - (GRID_SLOT_WIDTH + 64.F), 64.F };
+    Vector2 bagSize{ GRID_SLOT_WIDTH, GRID_SLOT_HEIGHT };
+    std::map<Coords, Slot> slots = level_.GetSlotPieces();
+    int numRows = static_cast<int>(slots.size());
+    int numCols = 1;
+    bag_ = std::make_unique<Grid<Slot>>(
+        Grid<Slot>{ bagOrigin, numRows, numCols, bagSize });
+
+    // Add pieces to inventory..
+    bag_->ForEach(
+        [&](Slot &slot, Coords coords)
+        {
+            if (slots.contains(coords))
+                slot = slots[coords];
+        });
+
+    // Immediately simulate board..
+    lightField_ = Simulate(board_.get());
+    lightFieldResult_ = CheckLightField(board_.get(), lightField_);
 }
 
 LightFieldResult Game::CheckLightField(
@@ -84,7 +64,7 @@ LightFieldResult Game::CheckLightField(
     grid->ForEach(
         [&](const Cell &cell, Coords coords)
         {
-            const auto *targetPiece = std::get_if<Source>(&cell.piece);
+            const auto *targetPiece = std::get_if<Target>(&cell.piece);
             if (targetPiece != nullptr)
             {
                 result.numTargets++;
@@ -231,9 +211,11 @@ bool Game::Bleed(Grid<Cell> *grid, Grid<LightCell> *lightGrid, Coords coords)
             const Coords nextCoords = Grid<Cell>::Translate(ray.out, coords);
             if (Grid<Cell>::InBounds(grid, nextCoords))
             {
+                const int nextStrength = ray.strength - 1;
                 LightRay nextRay{
                     .color = ray.color,
-                    .strength = ray.strength - 1,
+                    .strength = nextStrength,
+                    .strengthMax = nextStrength,
                     .in = InvertDirection(ray.out),
                 };
                 lightGrid->GetItem(nextCoords)->rays.push_back(nextRay);
@@ -259,7 +241,7 @@ void Game::Run()
 
 void Game::update(float /*dt*/)
 {
-    if (trackInput())
+    if (TrackMouseInput(GetMousePosition()))
     {
         // Update status..
         lightField_ = Simulate(board_.get());
@@ -272,15 +254,14 @@ void Game::update(float /*dt*/)
     }
 }
 
-bool Game::trackInput()
+bool Game::TrackMouseInput(const Vector2 &v)
 {
     bool changed = false;
 
     // --
-    const Vector2 m = GetMousePosition();
-    const Coords coords = bag_->GetCoordsAt(m);
-    Cell *cell = board_->GetItemAt(m);
-    Slot *slot = bag_->GetItemAt(m);
+    const Coords coords = bag_->GetCoordsAt(v);
+    Cell *cell = board_->GetItemAt(v);
+    Slot *slot = bag_->GetItemAt(v);
 
     // LEFT MOUSE PRESS - Pick up
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !drag_.held)
