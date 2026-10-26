@@ -16,12 +16,14 @@ enum class LightColor : std::uint8_t
 
 constexpr LightColor operator|(LightColor a, LightColor b)
 {
-    return static_cast<LightColor>(static_cast<std::uint8_t>(a) | static_cast<std::uint8_t>(b));
+    return static_cast<LightColor>(
+        static_cast<std::uint8_t>(a) | static_cast<std::uint8_t>(b));
 }
 
 constexpr LightColor operator&(LightColor a, LightColor b)
 {
-    return static_cast<LightColor>(static_cast<std::uint8_t>(a) & static_cast<std::uint8_t>(b));
+    return static_cast<LightColor>(
+        static_cast<std::uint8_t>(a) & static_cast<std::uint8_t>(b));
 }
 
 constexpr LightColor invert(LightColor c)
@@ -31,3 +33,14 @@ constexpr LightColor invert(LightColor c)
     // 3) & (bitwise mask) keeps only the 3 bits we care about
     return static_cast<LightColor>(~static_cast<unsigned>(c) & 0b111U);
 }
+
+// Compile-time tests..
+static_assert((LightColor::Red | LightColor::Green) == LightColor::Yellow);
+static_assert((LightColor::Red | LightColor::Blue) == LightColor::Magenta);
+static_assert((LightColor::Green | LightColor::Blue) == LightColor::Cyan);
+static_assert((LightColor::Blue | LightColor::Yellow) == LightColor::White);
+static_assert((LightColor::Red & LightColor::Green) == LightColor::None);
+static_assert((LightColor::Cyan & LightColor::Blue) == LightColor::Blue);
+static_assert(invert(LightColor::Blue) == LightColor::Yellow);
+static_assert(invert(LightColor::Red) == LightColor::Cyan);
+static_assert(invert(LightColor::Green) == LightColor::Magenta);
