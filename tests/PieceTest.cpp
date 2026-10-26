@@ -24,7 +24,7 @@ class PieceFixture : public ::testing::Test
     {
         LightCell cell;
         cell.rays.push_back(in);
-        Game::Transform(piece, cell);
+        TransformPiece(piece, cell.rays);
         EXPECT_EQ(cell.rays.size(), 1);
         return cell.rays.empty() ? LightRay{} : cell.rays[0];
     }

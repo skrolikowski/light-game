@@ -48,19 +48,16 @@ Game::Game(int width, int height, const char *title)
     }
 
     lightField_ = Simulate(board_.get());
+    lightFieldResult_ = CheckLightField(board_.get(), lightField_);
 
     // -- Inventory ----
     const json &inventory = levelData_.at("inventory");
     const int numInventory = static_cast<int>(inventory.size());
     // Create slot bag..
     Vector2 bagOrigin{ SCREEN_WIDTH - (GRID_SLOT_WIDTH + 64.F), 64.F };
-    bag_ = std::make_unique<Grid<Slot>>(Grid<Slot>{
-        bagOrigin,
-        numInventory,
-        1,
-        Vector2{ GRID_SLOT_WIDTH, GRID_SLOT_HEIGHT },
-    });
-
+    Vector2 bagSize{ GRID_SLOT_WIDTH, GRID_SLOT_HEIGHT };
+    bag_ = std::make_unique<Grid<Slot>>(
+        Grid<Slot>{ bagOrigin, numInventory, 1, bagSize });
     int bagIndex = 0;
     bag_->ForEach(
         [&](Slot &s, Coords)
@@ -77,45 +74,6 @@ Game::Game(int width, int height, const char *title)
 Game::~Game()
 {
     CloseWindow();
-}
-
-bool Game::Bleed(Grid<Cell> *grid, Grid<LightCell> *lightGrid, Coords coords)
-{
-    LightCell *cell = lightGrid->GetItem(coords);
-    if (cell == nullptr)
-        return false;
-    std::size_t bleedCount = 0;
-
-    for (LightRay &ray : cell->rays)
-    {
-        if (!ray.hasSpread && ray.strength > 0)
-        {
-            // ..ray has ended..
-            if (ray.out == AxisDirection::None)
-            {
-                ray.hasSpread = true;
-                continue;
-            }
-
-            // ..bleed to next cell..
-            const Coords nextCoords = Grid<Cell>::Translate(ray.out, coords);
-            if (Grid<Cell>::InBounds(grid, nextCoords))
-            {
-                LightRay nextRay{
-                    .color = ray.color,
-                    .strength = ray.strength - 1,
-                    .in = InvertDirection(ray.out),
-                };
-                lightGrid->GetItem(nextCoords)->rays.push_back(nextRay);
-                bleedCount += 1;
-            }
-
-            // --
-            ray.hasSpread = true;
-        }
-    }
-
-    return bleedCount > 0;
 }
 
 LightFieldResult Game::CheckLightField(
@@ -158,7 +116,7 @@ LightField Game::Propagate(Grid<Cell> *grid, const CombinerOutputs &outputs)
 
             if (std::holds_alternative<Source>(piece))
             {
-                Transform(piece, lc);
+                TransformPiece(piece, lc.rays);
                 Bleed(grid, field.grid.get(), coords);
             }
             else if (std::holds_alternative<Combiner>(piece))
@@ -194,7 +152,7 @@ LightField Game::Propagate(Grid<Cell> *grid, const CombinerOutputs &outputs)
                     return;
 
                 // Hook in => out (if possible)..
-                Transform(piece, lc);
+                TransformPiece(piece, lc.rays);
 
                 // Bleed to next coords..
                 if (Bleed(grid, field.grid.get(), coords))
@@ -251,81 +209,43 @@ LightField Game::Simulate(Grid<Cell> *grid)
     return field;
 }
 
-void Game::Transform(const Piece &piece, LightCell &cell)
+bool Game::Bleed(Grid<Cell> *grid, Grid<LightCell> *lightGrid, Coords coords)
 {
-    auto each = [&](auto fn)
-    {
-        for (LightRay &r : cell.rays)
-        {
-            if (r.hasSpread || r.strength == 0)
-                continue;
-            fn(r);
-        }
-    };
+    LightCell *cell = lightGrid->GetItem(coords);
+    if (cell == nullptr)
+        return false;
+    std::size_t bleedCount = 0;
 
-    std::visit(
-        Overload{
-            [](const Wall &) { /* absorbs light */ },
-            [&](const Source &o)
+    for (LightRay &ray : cell->rays)
+    {
+        if (!ray.hasSpread && ray.strength > 0)
+        {
+            // ..ray has ended..
+            if (ray.out == AxisDirection::None)
             {
-                LightRay source = {
-                    .color = o.color,
-                    .strength = o.strength,
-                    .strengthMax = o.strength,
-                    .out = o.out,
+                ray.hasSpread = true;
+                continue;
+            }
+
+            // ..bleed to next cell..
+            const Coords nextCoords = Grid<Cell>::Translate(ray.out, coords);
+            if (Grid<Cell>::InBounds(grid, nextCoords))
+            {
+                LightRay nextRay{
+                    .color = ray.color,
+                    .strength = ray.strength - 1,
+                    .in = InvertDirection(ray.out),
                 };
-                cell.rays.push_back(source);
-            },
-            [](const Target &) { /* absorbs light */ },
-            [&](const Mirror &o)
-            {
-                each([&](LightRay &r)
-                    { r.out = RotateMirrorDirection(r.in, o.rot); });
-            },
-            [&](const Booster &o)
-            {
-                each(
-                    [&](LightRay &r)
-                    {
-                        r.strength =
-                            std::min(r.strength + o.strength, RAY_STRENGTH_MAX);
-                        r.out = InvertDirection(r.in);
-                    });
-            },
-            [&](const Inverter &)
-            {
-                each(
-                    [](LightRay &r)
-                    {
-                        r.color = invert(r.color);
-                        r.out = InvertDirection(r.in);
-                    });
-            },
-            [&](const Filter &o)
-            {
-                each(
-                    [&](LightRay &r)
-                    {
-                        r.color = r.color & o.keep;
-                        r.out = InvertDirection(r.in);
-                    });
-            },
-            [&](const Tint &o)
-            {
-                each(
-                    [&](LightRay &r)
-                    {
-                        r.color = r.color | o.add;
-                        r.out = InvertDirection(r.in);
-                    });
-            },
-            [&](auto &)
-            {
-                // Pass-thru..
-                each([](LightRay &r) { r.out = InvertDirection(r.in); });
-            },
-        },
-        piece);
+                lightGrid->GetItem(nextCoords)->rays.push_back(nextRay);
+                bleedCount += 1;
+            }
+
+            // --
+            ray.hasSpread = true;
+        }
+    }
+
+    return bleedCount > 0;
 }
 
 void Game::Run()
@@ -344,10 +264,11 @@ void Game::update(float /*dt*/)
         // Update status..
         lightField_ = Simulate(board_.get());
         lightFieldResult_ = CheckLightField(board_.get(), lightField_);
-        if (lightFieldResult_.isSolved())
-        {
-            // TODO: do something
-        }
+    }
+
+    if (lightFieldResult_.isSolved())
+    {
+        // TODO: do something
     }
 }
 

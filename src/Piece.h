@@ -5,6 +5,7 @@
 #include <raymath.h>
 #include <string>
 #include <variant>
+#include <vector>
 
 #include "Color.h"
 #include "Def.h"
@@ -116,6 +117,83 @@ inline void RotatePiece(Piece &p)
             [](auto &) {},
         },
         p);
+}
+
+inline void TransformPiece(const Piece &piece, std::vector<LightRay> &rays)
+{
+    auto each = [&](auto fn)
+    {
+        for (LightRay &r : rays)
+        {
+            if (r.hasSpread || r.strength == 0)
+                continue;
+            fn(r);
+        }
+    };
+
+    std::visit(
+        Overload{
+            [](const Wall &) { /* absorbs light */ },
+            [&](const Source &o)
+            {
+                LightRay source = {
+                    .color = o.color,
+                    .strength = o.strength,
+                    .strengthMax = o.strength,
+                    .out = o.out,
+                };
+                rays.push_back(source);
+            },
+            [](const Target &) { /* absorbs light */ },
+            [&](const Mirror &o)
+            {
+                each([&](LightRay &r)
+                    { r.out = RotateMirrorDirection(r.in, o.rot); });
+            },
+            [&](const Booster &o)
+            {
+                each(
+                    [&](LightRay &r)
+                    {
+                        r.strength =
+                            std::min(r.strength + o.strength, RAY_STRENGTH_MAX);
+                        r.out = InvertDirection(r.in);
+                    });
+            },
+            [&](const Inverter &)
+            {
+                each(
+                    [](LightRay &r)
+                    {
+                        r.color = invert(r.color);
+                        r.out = InvertDirection(r.in);
+                    });
+            },
+            [&](const Filter &o)
+            {
+                each(
+                    [&](LightRay &r)
+                    {
+                        r.color = r.color & o.keep;
+                        r.out = InvertDirection(r.in);
+                    });
+            },
+            [&](const Tint &o)
+            {
+                each(
+                    [&](LightRay &r)
+                    {
+                        r.color = r.color | o.add;
+                        r.out = InvertDirection(r.in);
+                    });
+            },
+            [&](auto &)
+            {
+                // Pass-thru..
+                each([](LightRay &r) { r.out = InvertDirection(r.in); });
+            },
+        },
+        piece);
 }
 
 inline void DrawPiece(const Piece &piece, Rectangle bounds)

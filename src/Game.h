@@ -55,7 +55,6 @@ class Game
         Grid<Cell> *grid, const CombinerOutputs &outputs);
     static bool Bleed(
         Grid<Cell> *grid, Grid<LightCell> *lightGrid, Coords coords);
-    static void Transform(const Piece &piece, LightCell &cell);
     static LightField Simulate(Grid<Cell> *grid);
 
     static void DrawInventorySlot(const Slot &slot, Rectangle bounds);
