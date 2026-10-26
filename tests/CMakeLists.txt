@@ -24,4 +24,5 @@ gtest_discover_tests(bleed_test)
 
 add_executable(input_test "InputTest.cpp")
 target_link_libraries(input_test PRIVATE src GTest::gtest_main)
-gtest_discover_tests(input_test)
+# Level paths like "res/levels/..." are relative to the project root
+gtest_discover_tests(input_test WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
