@@ -24,30 +24,8 @@ inline void LoadLevel(const std::string &path, json &data)
     }
     catch (nlohmann::json::parse_error &exception)
     {
-        std::fprintf(stderr, "Error parsing JSON from `%s`: %s.", path.c_str(), exception.what());
-    }
-}
-
-inline Color ToRaylibColor(LightColor color)
-{
-    switch (color)
-    {
-        case LightColor::Red:
-            return RED;
-        case LightColor::Green:
-            return GREEN;
-        case LightColor::Blue:
-            return BLUE;
-        case LightColor::Yellow:
-            return YELLOW;
-        case LightColor::Magenta:
-            return MAGENTA;
-        case LightColor::Cyan:
-            return SKYBLUE;
-        case LightColor::White:
-            return WHITE;
-        default:
-            return BLACK;
+        std::fprintf(stderr, "Error parsing JSON from `%s`: %s.", path.c_str(),
+            exception.what());
     }
 }
 
@@ -95,7 +73,8 @@ inline Piece ReadPiece(const json &data)
     if (type == "source")
     {
         const LightColor color = ReadColor(data.value("color", "white"));
-        const AxisDirection dir = ReadAxisDirection(data.value("direction", "none"));
+        const AxisDirection dir =
+            ReadAxisDirection(data.value("direction", "none"));
         int strength = data.value("strength", 5);
         return Source{ .color = color, .out = dir, .strength = strength };
     }

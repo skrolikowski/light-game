@@ -1,6 +1,5 @@
-#include <raylib.h>
-
 #include <algorithm>
+#include <raylib.h>
 
 #include "Def.h"
 #include "Game.h"
@@ -117,6 +116,28 @@ bool Game::Bleed(Grid<Cell> *grid, Grid<LightCell> *lightGrid, Coords coords)
     }
 
     return bleedCount > 0;
+}
+
+LightFieldResult Game::CheckLightField(
+    const Grid<Cell> *grid, const LightField &field)
+{
+    LightFieldResult result;
+    result.isStable = field.isStable;
+    grid->ForEach(
+        [&](const Cell &cell, Coords coords)
+        {
+            const auto *targetPiece = std::get_if<Source>(&cell.piece);
+            if (targetPiece != nullptr)
+            {
+                result.numTargets++;
+                std::vector<LightRay> rays = field.grid->GetItem(coords)->rays;
+
+                for (const auto &ray : rays)
+                    if (ray.strength > 0 && ray.color == targetPiece->color)
+                        result.numTargetsLit++;
+            }
+        });
+    return result;
 }
 
 LightField Game::Propagate(Grid<Cell> *grid, const CombinerOutputs &outputs)
@@ -322,6 +343,11 @@ void Game::update(float /*dt*/)
     {
         // Update status..
         lightField_ = Simulate(board_.get());
+        lightFieldResult_ = CheckLightField(board_.get(), lightField_);
+        if (lightFieldResult_.isSolved())
+        {
+            // TODO: do something
+        }
     }
 }
 
@@ -420,143 +446,6 @@ void Game::DrawInventorySlot(const Slot &slot, Rectangle bounds)
     auto posY = static_cast<int>(bounds.y + (bounds.height * 0.33F));
     std::string text = "x" + std::to_string(slot.count);
     DrawText(text.c_str(), posX, posY, 24, BLACK);
-}
-
-void Game::DrawPiece(const Piece &piece, Rectangle bounds)
-{
-    const Rectangle r =
-        Inset(bounds, Vector2{ GRID_CELL_SIZE * 0.1F, GRID_CELL_SIZE * 0.1F });
-    const Vector2 center{ r.x + (r.width / 2), r.y + (r.height / 2) };
-
-    std::visit(
-        Overload{
-            [](std::monostate) { /*Draw nothing*/ },
-            [&](const Wall &)
-            {
-        DrawRectangleRounded(r, 0.2F, 20, BLACK);
-        // DrawRectangleRec(r, 5,BLACK);
-            },
-            [&](const Source &o) 
-            {
-        float wedge = 30.F;
-        float radMin = r.width / 4.F;
-        float radMax = r.width / 2.F;
-        float rad =
-            radMin + ((radMax - radMin) * static_cast<float>(o.strength) /
-                         RAY_STRENGTH_MAX);
-        const float facing = DirectionToAngle(o.out);
-
-        DrawCircleSector(center, rad, facing - wedge, facing + wedge, 20,
-            ToRaylibColor(o.color));
-            },
-            [&](const Target &o)
-            {
-        float radMin = r.width / 4.F;
-        float radMax = r.width / 3.F;
-        DrawRing(center, radMin, radMax, 0, 360, 32, ToRaylibColor(o.color));
-            },
-            [&](const Mirror &o)
-            {
-        DrawRectangleRoundedLinesEx(r, 0.2F, 20, 4.F, BLACK);
-
-        const bool fwd = o.rot == MirrorRotation::ForwardSlash;
-        Vector2 a{ r.x, fwd ? r.y + r.height : r.y };
-        Vector2 b{ r.x + r.width, fwd ? r.y : r.y + r.height };
-        DrawLineEx(a, b, 4.F, BLACK);
-            },
-            [&](const Booster &o)
-            {
-        // if (o.out == AxisDirection::None)
-        // {
-        //     DrawCircleV(center, rad, ToRaylibColor(o.color));
-        //     return;
-        // }
-        DrawRectangleRoundedLinesEx(r, 0.2F, 20, 4.F, BLACK);
-        std::string s = "+" + std::to_string(o.strength);
-        DrawText(s.c_str(), center.x, center.y, 10, WHITE);
-            },
-            [&](const Inverter &)
-            {
-                
-            },
-            [&](const Filter &o)
-            {
-        DrawRing(center, r.width / 4, r.width / 3, 0, 360, 32,
-            ToRaylibColor(o.keep));
-            },
-            [&](const Tint &o)
-            {
-        DrawCircleV(center, r.width / 3, ToRaylibColor(o.add));
-            },
-            [&](const Combiner &o)
-            {
-        // TODO: Rounded Rectangle Border
-        // TODO: Tiny o.color Triangle pointing in out direction
-        //  Triangle pointing East, relative to center; rotated to face o.out
-        const float h = r.width / 2.F;
-        const float angle = DirectionToAngle(o.out) * DEG2RAD;
-        const Vector2 tip =
-            Vector2Add(center, Vector2Rotate({ h, 0.F }, angle));
-        const Vector2 baseA =
-            Vector2Add(center, Vector2Rotate({ -h, -h }, angle));
-        const Vector2 baseB =
-            Vector2Add(center, Vector2Rotate({ -h, h }, angle));
-        DrawTriangle(
-            tip, baseA, baseB, BLACK); // raylib needs counter-clockwise order
-            },
-            // [](auto&) {},
-        },
-        piece);
-}
-
-void Game::DrawLightRay(const LightRay &ray, Rectangle bounds)
-{
-    const Vector2 center{ bounds.x + (bounds.width / 2),
-        bounds.y + (bounds.height / 2) };
-
-    // Edge midpoint for a direction (center if None)..
-    auto edge = [&](AxisDirection dir) -> Vector2
-    {
-        switch (dir)
-        {
-            case AxisDirection::North:
-                return { center.x, bounds.y };
-            case AxisDirection::South:
-                return { center.x, bounds.y + bounds.height };
-            case AxisDirection::East:
-                return { bounds.x + bounds.width, center.y };
-            case AxisDirection::West:
-                return { bounds.x, center.y };
-            default:
-                return center;
-        }
-    };
-    const Vector2 in = edge(ray.in);
-    const Vector2 out = edge(ray.out);
-
-    // Weak rays fade, but never vanish entirely..
-    float strength = std::clamp(
-        static_cast<float>(ray.strength / ray.strengthMax), 0.25F, 1.F);
-    float pulseBase = 0.9F;
-    float pulseAmp = 0.1F;
-    float pulseFreq = 4.F;
-    strength *= pulseBase + (pulseAmp * sinf(GetTime() * pulseFreq));
-    const Color baseColor = ToRaylibColor(ray.color);
-
-    // Rounded capsule: in => center => out
-    auto stroke = [&](float thick, Color c)
-    {
-        DrawLineEx(in, center, thick, c);
-        DrawLineEx(center, out, thick, c);
-        DrawCircleV(center, thick / 2, c);
-    };
-
-    // Soft glow (wide + faint => narrow + bright), then a hot core..
-    stroke(32.F, Fade(baseColor, 0.10F * strength));
-    stroke(24.F, Fade(baseColor, 0.25F * strength));
-    stroke(18.F, Fade(baseColor, 0.40F * strength));
-    stroke(12.F, Fade(baseColor, 0.60F * strength));
-    stroke(8.F, Fade(ColorBrightness(baseColor, 0.5F), 0.75F * strength));
 }
 
 void Game::drawLightField() const

@@ -37,7 +37,9 @@ class PieceFixture : public ::testing::Test
 TEST_F(PieceFixture, NullPieceTransform)
 {
     Piece piece = std::monostate{};
-    LightRay ray{ .color = LightColor::Red, .strength = 2, .in = AxisDirection::North };
+    LightRay ray{
+        .color = LightColor::Red, .strength = 2, .in = AxisDirection::North
+    };
     auto out = TransformOne(piece, ray);
 
     EXPECT_EQ(out.out, AxisDirection::South);
@@ -46,7 +48,9 @@ TEST_F(PieceFixture, NullPieceTransform)
 TEST_F(PieceFixture, WallPieceTransform)
 {
     Piece piece = Wall{};
-    LightRay ray{ .color = LightColor::Red, .strength = 2, .in = AxisDirection::North };
+    LightRay ray{
+        .color = LightColor::Red, .strength = 2, .in = AxisDirection::North
+    };
     auto out = TransformOne(piece, ray);
 
     EXPECT_EQ(out.out, AxisDirection::None);
@@ -55,16 +59,20 @@ TEST_F(PieceFixture, WallPieceTransform)
 TEST_F(PieceFixture, TargetPieceTransform)
 {
     Piece piece = Target{ .color = LightColor::Red };
-    LightRay ray{ .color = LightColor::Red, .strength = 2, .in = AxisDirection::North };
+    LightRay ray{
+        .color = LightColor::Red, .strength = 2, .in = AxisDirection::North
+    };
     auto out = TransformOne(piece, ray);
 
-    EXPECT_EQ(out.out, AxisDirection::South);
+    EXPECT_EQ(out.out, AxisDirection::None);
 }
 
 TEST_F(PieceFixture, MirrorPieceTransformSouthToEast)
 {
     Piece piece = Mirror{ .rot = MirrorRotation::ForwardSlash };
-    LightRay ray{ .color = LightColor::Red, .strength = 2, .in = AxisDirection::South };
+    LightRay ray{
+        .color = LightColor::Red, .strength = 2, .in = AxisDirection::South
+    };
     auto out = TransformOne(piece, ray);
 
     EXPECT_EQ(out.out, AxisDirection::East);
@@ -73,7 +81,9 @@ TEST_F(PieceFixture, MirrorPieceTransformSouthToEast)
 TEST_F(PieceFixture, MirrorPieceTransformSouthToWest)
 {
     Piece piece = Mirror{ .rot = MirrorRotation::BackSlash };
-    LightRay ray{ .color = LightColor::Red, .strength = 2, .in = AxisDirection::South };
+    LightRay ray{
+        .color = LightColor::Red, .strength = 2, .in = AxisDirection::South
+    };
     auto out = TransformOne(piece, ray);
 
     EXPECT_EQ(out.out, AxisDirection::West);
@@ -82,7 +92,9 @@ TEST_F(PieceFixture, MirrorPieceTransformSouthToWest)
 TEST_F(PieceFixture, MirrorPieceTransformNorthToWest)
 {
     Piece piece = Mirror{ .rot = MirrorRotation::ForwardSlash };
-    LightRay ray{ .color = LightColor::Red, .strength = 2, .in = AxisDirection::North };
+    LightRay ray{
+        .color = LightColor::Red, .strength = 2, .in = AxisDirection::North
+    };
     auto out = TransformOne(piece, ray);
 
     EXPECT_EQ(out.out, AxisDirection::West);
@@ -91,7 +103,9 @@ TEST_F(PieceFixture, MirrorPieceTransformNorthToWest)
 TEST_F(PieceFixture, MirrorPieceTransformNorthToEast)
 {
     Piece piece = Mirror{ .rot = MirrorRotation::BackSlash };
-    LightRay ray{ .color = LightColor::Red, .strength = 2, .in = AxisDirection::North };
+    LightRay ray{
+        .color = LightColor::Red, .strength = 2, .in = AxisDirection::North
+    };
     auto out = TransformOne(piece, ray);
 
     EXPECT_EQ(out.out, AxisDirection::East);
@@ -100,7 +114,9 @@ TEST_F(PieceFixture, MirrorPieceTransformNorthToEast)
 TEST_F(PieceFixture, BoosterPieceTransform)
 {
     Piece piece = Booster{ .strength = 3 };
-    LightRay ray{ .color = LightColor::Red, .strength = 2, .in = AxisDirection::North };
+    LightRay ray{
+        .color = LightColor::Red, .strength = 2, .in = AxisDirection::North
+    };
     auto out = TransformOne(piece, ray);
 
     EXPECT_EQ(out.out, AxisDirection::South);
@@ -110,17 +126,21 @@ TEST_F(PieceFixture, BoosterPieceTransform)
 
 TEST_F(PieceFixture, BoosterPieceTransformMaxStrength)
 {
-    Piece piece = Booster{ .strength = 4 };
-    LightRay ray{ .color = LightColor::Red, .strength = 4, .in = AxisDirection::North };
+    Piece piece = Booster{ .strength = 5 };
+    LightRay ray{
+        .color = LightColor::Red, .strength = 5, .in = AxisDirection::North
+    };
     auto out = TransformOne(piece, ray);
 
-    EXPECT_EQ(out.strength, 5);
+    EXPECT_EQ(out.strength, RAY_STRENGTH_MAX);
 }
 
 TEST_F(PieceFixture, InverterPieceTransformRedtoCyan)
 {
     Piece piece = Inverter{};
-    LightRay ray{ .color = LightColor::Red, .strength = 2, .in = AxisDirection::North };
+    LightRay ray{
+        .color = LightColor::Red, .strength = 2, .in = AxisDirection::North
+    };
     auto out = TransformOne(piece, ray);
 
     EXPECT_EQ(out.out, AxisDirection::South);

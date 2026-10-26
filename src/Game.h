@@ -29,6 +29,18 @@ struct LightField
     bool isStable = true;
 };
 
+struct LightFieldResult
+{
+    int numTargets = 0;
+    int numTargetsLit = 0;
+    bool isStable = true;
+
+    [[nodiscard]] bool isSolved() const noexcept
+    {
+        return isStable && numTargets == numTargetsLit;
+    }
+};
+
 class Game
 {
   public:
@@ -37,6 +49,8 @@ class Game
 
     void Run();
 
+    static LightFieldResult CheckLightField(
+        const Grid<Cell> *grid, const LightField &field);
     static LightField Propagate(
         Grid<Cell> *grid, const CombinerOutputs &outputs);
     static bool Bleed(
@@ -45,8 +59,6 @@ class Game
     static LightField Simulate(Grid<Cell> *grid);
 
     static void DrawInventorySlot(const Slot &slot, Rectangle bounds);
-    static void DrawPiece(const Piece &piece, Rectangle bounds);
-    static void DrawLightRay(const LightRay &ray, Rectangle bounds);
 
   private:
     void update(float dt);
@@ -56,6 +68,7 @@ class Game
 
     Drag drag_;
     LightField lightField_;
+    LightFieldResult lightFieldResult_{};
     std::string levelTitle_;
     json levelData_ = json::object();
     std::unique_ptr<Grid<Cell>> board_;
