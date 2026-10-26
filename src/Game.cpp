@@ -6,18 +6,6 @@
 #include "Game.h"
 #include "Piece.h"
 
-Game::Game(int width, int height, const char *title)
-{
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
-    InitWindow(width, height, title);
-    SetTargetFPS(60);
-}
-
-Game::~Game()
-{
-    CloseWindow();
-}
-
 void Game::LoadLevel(std::string path)
 {
     level_ = Level{ path };

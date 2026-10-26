@@ -7,11 +7,7 @@
 class InputFixture : public ::testing::Test
 {
   protected:
-    Game game{
-        SCREEN_WIDTH,
-        SCREEN_HEIGHT,
-        "Demo",
-    };
+    Game game;
 };
 
 TEST_F(InputFixture, HoverOverBoardCellWithNoLevelLoaded)

@@ -45,9 +45,6 @@ struct LightFieldResult
 class Game
 {
   public:
-    Game(int width, int height, const char *title);
-    ~Game();
-
     void LoadLevel(std::string path);
     void Run();
     bool TrackMouseInput(const Vector2 &v);
