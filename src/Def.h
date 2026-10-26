@@ -8,3 +8,11 @@
 #define GRID_SLOT_HEIGHT 64.F
 
 #define RAY_STRENGTH_MAX 8
+
+#include <raylib.h>
+
+inline Rectangle Inset(Rectangle r, Vector2 pad)
+{
+    return { r.x + pad.x, r.y + pad.y, r.width - (2 * pad.x),
+        r.height - (2 * pad.y) };
+}

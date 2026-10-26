@@ -15,6 +15,20 @@ struct Drag
     Slot *slot;
 };
 
+using LightRays = std::vector<LightRay>;
+using CombinerOutputs = std::map<Coords, LightRay>;
+
+struct LightCell
+{
+    std::vector<LightRay> rays;
+};
+
+struct LightField
+{
+    std::unique_ptr<Grid<LightCell>> grid;
+    bool isStable = true;
+};
+
 class Game
 {
   public:
@@ -46,5 +60,4 @@ class Game
     json levelData_ = json::object();
     std::unique_ptr<Grid<Cell>> board_;
     std::unique_ptr<Grid<Slot>> bag_;
-    // std::vector<Slot> inventory_;
 };

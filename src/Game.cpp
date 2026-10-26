@@ -73,15 +73,6 @@ Game::Game(int width, int height, const char *title)
             s = Slot{ .piece = piece, .count = pieceCount };
             bagIndex++;
         });
-    // for (int i = 0; i < numInventory; ++i)
-    // {
-    //     bag_->GetItem(Coords coords)
-    //     const json &invData = inventory.at(static_cast<unsigned long>(i));
-    //     Piece piece = ReadPiece(invData);
-    //     int pieceCount = invData.value("count", 1);
-    //     Slot slot{ .piece = piece, .count = pieceCount };
-    //     inventory_.push_back(slot);
-    // }
 }
 
 Game::~Game()
@@ -108,7 +99,7 @@ bool Game::Bleed(Grid<Cell> *grid, Grid<LightCell> *lightGrid, Coords coords)
             }
 
             // ..bleed to next cell..
-            const Coords nextCoords = Translate(ray.out, coords);
+            const Coords nextCoords = Grid<Cell>::Translate(ray.out, coords);
             if (Grid<Cell>::InBounds(grid, nextCoords))
             {
                 LightRay nextRay{
