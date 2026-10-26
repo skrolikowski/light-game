@@ -26,7 +26,7 @@ struct LightRay
     friend bool operator==(const LightRay &, const LightRay &) = default;
 };
 
-inline AxisDirection InvertDirection(AxisDirection in)
+constexpr AxisDirection InvertDirection(AxisDirection in)
 {
     switch (in)
     {
@@ -43,7 +43,7 @@ inline AxisDirection InvertDirection(AxisDirection in)
     }
 }
 
-inline AxisDirection RotateDirection(AxisDirection in)
+constexpr AxisDirection RotateDirection(AxisDirection in)
 {
     switch (in)
     {
@@ -60,7 +60,7 @@ inline AxisDirection RotateDirection(AxisDirection in)
     }
 }
 
-inline float DirectionToAngle(AxisDirection dir)
+constexpr float DirectionToAngle(AxisDirection dir)
 {
     switch (dir)
     {
@@ -75,7 +75,7 @@ inline float DirectionToAngle(AxisDirection dir)
     }
 }
 
-inline Color ToRaylibColor(LightColor color)
+constexpr Color ToRaylibColor(LightColor color)
 {
     switch (color)
     {
@@ -124,8 +124,11 @@ inline void DrawLightRay(const LightRay &ray, Rectangle bounds)
     const Vector2 out = edge(ray.out);
 
     // Weak rays fade, but never vanish entirely..
-    float strength = std::clamp(
-        static_cast<float>(ray.strength / ray.strengthMax), 0.25F, 1.F);
+    float strength = 0;
+    if (ray.strengthMax > 0)
+        strength = std::clamp(static_cast<float>(ray.strength) /
+                                  static_cast<float>(ray.strengthMax),
+            0.25F, 1.F);
     float pulseBase = 0.9F;
     float pulseAmp = 0.1F;
     float pulseFreq = 4.F;
