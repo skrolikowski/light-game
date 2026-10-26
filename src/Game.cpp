@@ -253,7 +253,7 @@ void Game::Transform(const Piece &piece, LightCell &cell)
 
     std::visit(
         Overload{
-            [&](const Wall &) { /* absorbs light */ },
+            [](const Wall &) { /* absorbs light */ },
             [&](const Source &o)
             {
                 LightRay source = {
@@ -264,6 +264,7 @@ void Game::Transform(const Piece &piece, LightCell &cell)
                 };
                 cell.rays.push_back(source);
             },
+            [](const Target &) { /* absorbs light */ },
             [&](const Mirror &o)
             {
                 each([&](LightRay &r)
