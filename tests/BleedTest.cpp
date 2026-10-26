@@ -12,7 +12,7 @@ TEST(Bleed, BleedOutOfBounds)
     Grid<LightCell> lc{ 2, 2, Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE } };
 
     Coords coords{ .row = 0, .col = 0 };
-    LightCell &cell = lc.GetItem(coords);
+    LightCell &cell = *lc.GetItem(coords);
     cell.rays.push_back({ .out = AxisDirection::North });
 
     bool hasBleed = Game::Bleed(&board, &lc, coords);
@@ -26,11 +26,11 @@ TEST(Bleed, NatrualBleed)
 
     // Start LightCell..
     Coords startCoords{ .row = 0, .col = 0 };
-    LightCell &startCell = lc.GetItem(startCoords);
+    LightCell &startCell = *lc.GetItem(startCoords);
 
     // End LightCell..
     Coords endCoords{ .row = 1, .col = 0 };
-    LightCell &endCell = lc.GetItem(endCoords);
+    LightCell &endCell = *lc.GetItem(endCoords);
 
     // Push Mock LightRay to Start LightCell..
     LightRay mockRay{

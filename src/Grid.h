@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <optional>
 #include <raylib.h>
 #include <vector>
 
@@ -24,19 +25,19 @@ struct Coords
     auto operator<=>(const Coords &) const = default;
 };
 
-struct Cell
-{
-    Piece piece;
-    int slot = -1;
-    bool isMovable = false;
-
-    friend bool operator==(const Cell &, const Cell &) = default;
-};
-
 struct Slot
 {
     Piece piece;
     int count = 0;
+};
+
+struct Cell
+{
+    Piece piece;
+    Slot *slot = nullptr;
+    [[nodiscard]] bool isMovable() const { return slot != nullptr; }
+
+    friend bool operator==(const Cell &, const Cell &) = default;
 };
 
 inline Coords Translate(AxisDirection dir, Coords coords)
@@ -82,8 +83,10 @@ template <typename T> class Grid
         createGrid();
     }
 
-    [[nodiscard]] const T &GetItem(Coords coords) const;
-    [[nodiscard]] T &GetItem(Coords coords);
+    [[nodiscard]] const T *GetItem(Coords coords) const noexcept;
+    [[nodiscard]] T *GetItem(Coords coords) noexcept;
+    [[nodiscard]] const T *GetItemAt(Vector2 v) const noexcept;
+    [[nodiscard]] T *GetItemAt(Vector2 v) noexcept;
     [[nodiscard]] Vector2 GetSize() const noexcept { return size_; }
     [[nodiscard]] Coords GetCoordsAt(Vector2) const noexcept;
     [[nodiscard]] Vector2 GetTopLeft(Coords coords) const noexcept;
@@ -96,6 +99,13 @@ template <typename T> class Grid
     {
         return coords.row >= 0 && coords.row < grid->rows_ && coords.col >= 0 &&
                coords.col < grid->cols_;
+    }
+
+    static bool InGrid(const Grid *grid, Vector2 v)
+    {
+        return v.x >= grid->origin_.x && v.y >= grid->origin_.y &&
+               v.x < grid->origin_.x + grid->size_.x * grid->cols_ &&
+               v.y < grid->origin_.y + grid->size_.y * grid->rows_;
     }
 
     template <typename F> void ForEach(F &&f)

@@ -44,11 +44,10 @@ Game::Game(int width, int height, const char *title)
 
             // place on board_
             Coords coords = { .row = row, .col = col };
-            board_->GetItem(coords).piece = piece;
+            board_->GetItem(coords)->piece = piece;
         }
     }
 
-    // TODO: only fire on "dirty"..
     lightField_ = Simulate(board_.get());
 
     // -- Inventory ----
@@ -92,10 +91,12 @@ Game::~Game()
 
 bool Game::Bleed(Grid<Cell> *grid, Grid<LightCell> *lightGrid, Coords coords)
 {
-    LightCell &cell = lightGrid->GetItem(coords);
+    LightCell *cell = lightGrid->GetItem(coords);
+    if (cell == nullptr)
+        return false;
     std::size_t bleedCount = 0;
 
-    for (LightRay &ray : cell.rays)
+    for (LightRay &ray : cell->rays)
     {
         if (!ray.hasSpread && ray.strength > 0)
         {
@@ -115,7 +116,7 @@ bool Game::Bleed(Grid<Cell> *grid, Grid<LightCell> *lightGrid, Coords coords)
                     .strength = ray.strength - 1,
                     .in = InvertDirection(ray.out),
                 };
-                lightGrid->GetItem(nextCoords).rays.push_back(nextRay);
+                lightGrid->GetItem(nextCoords)->rays.push_back(nextRay);
                 bleedCount += 1;
             }
 
@@ -141,7 +142,7 @@ LightField Game::Propagate(Grid<Cell> *grid, const CombinerOutputs &outputs)
     field.grid->ForEach(
         [&](LightCell &lc, Coords coords)
         {
-            Piece &piece = grid->GetItem(coords).piece;
+            Piece &piece = grid->GetItem(coords)->piece;
 
             if (std::holds_alternative<Source>(piece))
             {
@@ -168,7 +169,7 @@ LightField Game::Propagate(Grid<Cell> *grid, const CombinerOutputs &outputs)
             [&](LightCell &lc, Coords coords)
             {
                 // Ray meets Piece (maybe)..
-                Piece &piece = grid->GetItem(coords).piece;
+                Piece &piece = grid->GetItem(coords)->piece;
 
                 // Skip Source Pieces..
                 const auto *sourcePiece = std::get_if<Source>(&piece);
@@ -208,7 +209,7 @@ LightField Game::Simulate(Grid<Cell> *grid)
         field.grid->ForEach(
             [&](LightCell &lc, Coords coords)
             {
-                Piece &piece = grid->GetItem(coords).piece;
+                Piece &piece = grid->GetItem(coords)->piece;
                 const auto *combinerPiece = std::get_if<Combiner>(&piece);
                 if (combinerPiece != nullptr)
                 {
@@ -265,15 +266,16 @@ void Game::Transform(const Piece &piece, LightCell &cell)
             },
             [&](const Mirror &o)
             {
-                each(
-                    [&](LightRay &r) { r.out = RotateDirection(r.in, o.rot); });
+                each([&](LightRay &r)
+                    { r.out = RotateMirrorDirection(r.in, o.rot); });
             },
             [&](const Booster &o)
             {
                 each(
                     [&](LightRay &r)
                     {
-                        r.strength += o.strength;
+                        r.strength =
+                            std::min(r.strength + o.strength, RAY_STRENGTH_MAX);
                         r.out = InvertDirection(r.in);
                     });
             },
@@ -322,7 +324,85 @@ void Game::Run()
     }
 }
 
-void Game::update(float /*dt*/) {}
+void Game::update(float /*dt*/)
+{
+    if (trackInput())
+    {
+        // Update status..
+        lightField_ = Simulate(board_.get());
+    }
+}
+
+bool Game::trackInput()
+{
+    bool changed = false;
+
+    // --
+    const Vector2 m = GetMousePosition();
+    const Coords coords = bag_->GetCoordsAt(m);
+    Cell *cell = board_->GetItemAt(m);
+    Slot *slot = bag_->GetItemAt(m);
+
+    // LEFT MOUSE PRESS - Pick up
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !drag_.held)
+    {
+        if (slot != nullptr && slot->count > 0)
+        {
+            drag_.held = slot->piece;
+            drag_.from = std::nullopt;
+            drag_.slot = slot;
+
+            slot->count--;
+        }
+        else if (cell != nullptr && cell->isMovable())
+        {
+            drag_.held = std::exchange(cell->piece, std::monostate{});
+            drag_.from = coords;
+            drag_.slot = cell->slot;
+            changed = true;
+        }
+    }
+
+    // RIGHT MOUSE PRESS - Rotate Piece
+    if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
+    {
+        if (drag_.held.has_value())
+        {
+            RotatePiece(*drag_.held);
+        }
+        else if (cell != nullptr && cell->isMovable())
+        {
+            RotatePiece(cell->piece);
+            changed = true;
+        }
+    }
+
+    // LEFT MOUSE RELEASE - Place
+    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && drag_.held)
+    {
+        if (cell != nullptr && IsPieceEmpty(cell->piece))
+        {
+            // drop on board_
+            cell->piece = *drag_.held;
+            cell->slot = drag_.slot;
+            changed = true;
+        }
+        else if (drag_.from.has_value() && drag_.slot == nullptr)
+        {
+            // snap back to board..
+            board_->GetItem(*drag_.from)->piece = *drag_.held;
+            changed = true;
+        }
+        else
+        {
+            // snap back to inventory..
+            ++drag_.slot->count;
+        }
+        drag_ = {};
+    }
+
+    return changed;
+}
 
 void Game::DrawInventorySlot(const Slot &slot, Rectangle bounds)
 {
@@ -371,7 +451,7 @@ void Game::DrawPiece(const Piece &piece, Rectangle bounds)
         float radMax = r.width / 2.F;
         float rad =
             radMin + ((radMax - radMin) * static_cast<float>(o.strength) /
-                         SOURCE_STRENGTH_MAX);
+                         RAY_STRENGTH_MAX);
         const float facing = DirectionToAngle(o.out);
 
         DrawCircleSector(center, rad, facing - wedge, facing + wedge, 20,
@@ -516,7 +596,20 @@ void Game::draw() const
 
     // Draw bag_ w/ Slots..
     bag_->ForEach([&](const Slot &slot, Coords coords)
-        { DrawInventorySlot(slot, board_->GetRect(coords)); });
+        { DrawInventorySlot(slot, bag_->GetRect(coords)); });
+
+    // Draw drag_;
+    if (drag_.held)
+    {
+        const Vector2 m = GetMousePosition();
+        Rectangle bounds = {
+            m.x,
+            m.y,
+            GRID_CELL_SIZE,
+            GRID_CELL_SIZE,
+        };
+        DrawPiece(*drag_.held, bounds);
+    }
 
     DrawFPS(SCREEN_WIDTH - 90, 10);
     EndDrawing();

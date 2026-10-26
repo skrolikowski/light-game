@@ -43,6 +43,12 @@ template <class... Fs> struct Overload : Fs...
 };
 template <class... Fs> Overload(Fs...) -> Overload<Fs...>;
 
+inline MirrorRotation InvertMirrorDirection(MirrorRotation in)
+{
+    return in == MirrorRotation::ForwardSlash ? MirrorRotation::BackSlash
+                                              : MirrorRotation::ForwardSlash;
+}
+
 inline AxisDirection InvertDirection(AxisDirection in)
 {
     switch (in)
@@ -60,14 +66,33 @@ inline AxisDirection InvertDirection(AxisDirection in)
     }
 }
 
-inline AxisDirection RotateDirection(AxisDirection in, MirrorRotation rot)
+inline AxisDirection Rotate90(AxisDirection in)
 {
     switch (in)
     {
         case AxisDirection::North:
-            return rot == MirrorRotation::ForwardSlash ? AxisDirection::West : AxisDirection::East;
+            return AxisDirection::West;
         case AxisDirection::South:
-            return rot == MirrorRotation::ForwardSlash ? AxisDirection::East : AxisDirection::West;
+            return AxisDirection::East;
+        case AxisDirection::East:
+            return AxisDirection::North;
+        case AxisDirection::West:
+            return AxisDirection::South;
+        default:
+            return AxisDirection::None;
+    }
+}
+
+inline AxisDirection RotateMirrorDirection(AxisDirection in, MirrorRotation rot)
+{
+    switch (in)
+    {
+        case AxisDirection::North:
+            return rot == MirrorRotation::ForwardSlash ? AxisDirection::West
+                                                       : AxisDirection::East;
+        case AxisDirection::South:
+            return rot == MirrorRotation::ForwardSlash ? AxisDirection::East
+                                                       : AxisDirection::West;
         case AxisDirection::East:
             return rot == MirrorRotation::ForwardSlash ? AxisDirection::South
                                                        : AxisDirection::North;
@@ -79,7 +104,8 @@ inline AxisDirection RotateDirection(AxisDirection in, MirrorRotation rot)
     }
 }
 
-// Raylib angles: 0 = East, 90 = South, 180 = West, 270 = North (screen y points down)
+// Raylib angles: 0 = East, 90 = South, 180 = West, 270 = North (screen y points
+// down)
 inline float DirectionToAngle(AxisDirection dir)
 {
     switch (dir)
@@ -143,10 +169,21 @@ struct Combiner
     LightColor color; // changes with inputs
 };
 
-using Piece = std::variant<std::monostate, Wall, Source, Target, Mirror, Booster, Inverter, Filter,
-    Tint, Combiner>;
+using Piece = std::variant<std::monostate, Wall, Source, Target, Mirror,
+    Booster, Inverter, Filter, Tint, Combiner>;
 
 inline bool IsPieceEmpty(const Piece &p)
 {
     return std::holds_alternative<std::monostate>(p);
+}
+
+inline void RotatePiece(Piece &p)
+{
+    std::visit(
+        Overload{
+            [](Mirror &m) { m.rot = InvertMirrorDirection(m.rot); },
+            [](Combiner &c) { c.out = Rotate90(c.out); },
+            [](auto &) {},
+        },
+        p);
 }

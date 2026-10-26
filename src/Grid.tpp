@@ -26,6 +26,16 @@ template <typename T> Coords Grid<T>::GetCoordsAt(Vector2 v) const noexcept
     };
 }
 
+template <typename T> const T *Grid<T>::GetItemAt(Vector2 v) const noexcept
+{
+    return GetItem(GetCoordsAt(v));
+}
+
+template <typename T> T *Grid<T>::GetItemAt(Vector2 v) noexcept
+{
+    return GetItem(GetCoordsAt(v));
+}
+
 template <typename T> Vector2 Grid<T>::GetTopLeft(Coords coords) const noexcept
 {
     return {
@@ -37,25 +47,27 @@ template <typename T> Vector2 Grid<T>::GetTopLeft(Coords coords) const noexcept
 template <typename T> Rectangle Grid<T>::GetRect(Coords coords) const noexcept
 {
     Vector2 topLeft = GetTopLeft(coords);
-    return { .x = topLeft.x, .y = topLeft.y, .width = size_.x, .height = size_.y };
+    return {
+        .x = topLeft.x, .y = topLeft.y, .width = size_.x, .height = size_.y
+    };
 }
 
-template <typename T> const T &Grid<T>::GetItem(Coords coords) const
+template <typename T> const T *Grid<T>::GetItem(Coords coords) const noexcept
 {
     if (!InBounds(this, coords))
-        throw std::out_of_range("Grid coordinate out of range");
-    return items_.at(convertCoordsToIndex(coords));
+        return nullptr;
+    return &items_[convertCoordsToIndex(coords)];
 }
 
-template <typename T> T &Grid<T>::GetItem(Coords coords)
+template <typename T> T *Grid<T>::GetItem(Coords coords) noexcept
 {
     if (!InBounds(this, coords))
-        throw std::out_of_range("Grid coordinate out of range");
-    return items_.at(convertCoordsToIndex(coords));
+        return nullptr;
+    return &items_[convertCoordsToIndex(coords)];
 }
 
 template <typename T> void Grid<T>::Draw() const
 {
-    ForEach([&](const Cell &, Coords coords)
+    ForEach([&](const T &, Coords coords)
         { DrawRectangleLinesEx(GetRect(coords), 1.F, LIGHTGRAY); });
 }
