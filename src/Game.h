@@ -38,7 +38,7 @@ struct LightFieldResult
 
     [[nodiscard]] bool isSolved() const noexcept
     {
-        return isStable && numTargets == numTargetsLit;
+        return isStable && numTargetsLit >= numTargets;
     }
 };
 

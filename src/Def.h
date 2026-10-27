@@ -15,6 +15,8 @@
 
 #define RAY_STRENGTH_MAX 8
 
+#define MAX_COMBINER_SAMPLES 16
+
 #include <raylib.h>
 
 inline Rectangle Inset(Rectangle r, Vector2 pad)

@@ -137,7 +137,9 @@ LightField Game::Simulate(Grid<Cell> *grid)
     LightField field;
     CombinerOutputs outputs;
 
-    for (int i = 0; i < 2; ++i)
+    // TODO: max value should be # of Combiners + a couple..
+    // For now we'll add something generous.
+    for (int i = 0; i < MAX_COMBINER_SAMPLES; ++i)
     {
         // 1) Handle Pieces (- Combiner)..
         field = Propagate(grid, outputs);
@@ -266,7 +268,7 @@ bool Game::TrackMouseInput(const Vector2 &v)
         {
             drag_.held = std::exchange(cell->piece, std::monostate{});
             drag_.from = coords;
-            drag_.slot = cell->slot;
+            drag_.slot = std::exchange(cell->slot, nullptr);
             changed = true;
         }
     }
