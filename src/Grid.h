@@ -55,12 +55,6 @@ template <typename T> class Grid
     [[nodiscard]] Vector2 GetTopLeft(Coords coords) const noexcept;
     [[nodiscard]] Rectangle GetRect(Coords coords) const noexcept;
 
-    [[nodiscard]] int NumPieces() const noexcept
-    {
-        return std::accumulate(std::next(items_.begin()), items_.end(), 0,
-            [](int acc, T t) { return t.GetPiece(); });
-    }
-
     [[nodiscard]] int NumCols() const noexcept { return cols_; }
     [[nodiscard]] int NumRows() const noexcept { return rows_; }
 

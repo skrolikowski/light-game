@@ -221,8 +221,8 @@ inline void DrawPiece(const Piece &piece, Rectangle bounds)
                 const float facing = DirectionToAngle(o.out);
                 const float startAngle = facing + wedge;
                 const float endAngle = facing + 270 + wedge;
-                float radMin = r.width * 0.5F;
-                float radMax = r.width * 0.8F;
+                // float radMin = r.width * 0.5F;
+                // float radMax = r.width * 0.8F;
                 Color baseColor = ToRaylibColor(o.color);
                 auto stroke = [&](float innerRadius, float outerRadius, Color c)
                 {
@@ -262,7 +262,7 @@ inline void DrawPiece(const Piece &piece, Rectangle bounds)
         // }
         DrawRectangleRoundedLinesEx(r, 0.2F, 20, 4.F, BLACK);
         std::string s = "+" + std::to_string(o.strength);
-        DrawText(s.c_str(), center.x, center.y, 10, WHITE);
+        DrawText(s.c_str(), static_cast<int>(center.x), static_cast<int>(center.y), 10, WHITE);
             },
             [&](const Inverter &)
             {

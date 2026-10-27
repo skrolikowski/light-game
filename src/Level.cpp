@@ -49,9 +49,9 @@ void Level::parseSlots()
 
     for (int i = 0; i < numSlots; ++i)
     {
-        const json &invData = inventory.at(i);
+        const json &invData = inventory.at(static_cast<std::size_t>(i));
         Piece piece = ReadPiece(invData);
-        int pieceCount = invData.value("count", 1);
+        int pieceCount = invData.at("count");
 
         auto it = std::ranges::find_if(slots_,
             [&](const auto &pair) { return piece == pair.second.piece; });

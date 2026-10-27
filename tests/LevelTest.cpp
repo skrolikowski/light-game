@@ -73,7 +73,22 @@ TEST_P(LevelFixture, AllPiecesAddedToBoard)
 
 TEST_P(LevelFixture, AllPiecesAddedToInventory)
 {
-    // TODO: all pieces from level file added to inventory with correct count
+    const LevelTestCase &params = GetParam();
+
+    Game game;
+    game.LoadLevel(params.path);
+    Grid<Slot> *inventory = game.GetBag();
+
+    json level;
+    LoadLevelData(GetParam().path, level);
+
+    inventory->ForEach(
+        [&](const Slot &s, Coords coords)
+        {
+            std::size_t count =
+                GetInventoryPieceCount(level, PieceToString(s.piece));
+            EXPECT_EQ(s.count, count);
+        });
 }
 
 // TODO: Brute Force is solvable check..
