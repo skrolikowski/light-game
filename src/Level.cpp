@@ -91,7 +91,7 @@ void Level::parseSlots()
         }
         else
         {
-            Coords coords{ .row = i, .col = 0 };
+            Coords coords{ .row = static_cast<int>(slots_.size()), .col = 0 };
             slots_[coords] = { .piece = piece, .count = pieceCount };
         }
     }
