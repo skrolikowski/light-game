@@ -36,6 +36,7 @@ FetchContent_MakeAvailable(nlohmann_json)
 
 # -- Source Library ----
 add_library(src STATIC
+    src/Level.cpp
     src/Game.cpp)
 
 target_include_directories(src PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
