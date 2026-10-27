@@ -32,18 +32,6 @@ Level::Level(const json &data)
     parseSlots();
 }
 
-Level::Level(const std::string &path)
-{
-    LoadFileData(path, levelData_);
-
-    title_ = levelData_.value("title", "Default Title");
-    rows_ = levelData_.at("grid").value("rows", 0);
-    cols_ = levelData_.at("grid").value("cols", 0);
-
-    parsePieces();
-    parseSlots();
-}
-
 void Level::parsePieces()
 {
     const json &pieces = levelData_.at("pieces");
