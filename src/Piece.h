@@ -54,47 +54,52 @@ inline AxisDirection RotateMirrorDirection(AxisDirection in, MirrorRotation rot)
     }
 }
 
-struct Wall
+struct BasePiece
+{
+    auto operator<=>(const BasePiece &) const = default;
+};
+
+struct Wall : public BasePiece
 {
 };
 
-struct Source
+struct Source : public BasePiece
 {
     LightColor color;
     AxisDirection out;
     int strength = 5;
 };
 
-struct Target
+struct Target : public BasePiece
 {
     LightColor color;
 };
 
-struct Mirror
+struct Mirror : public BasePiece
 {
     MirrorRotation rot;
 };
 
-struct Booster
+struct Booster : public BasePiece
 {
     int strength = 0;
 };
 
-struct Inverter
+struct Inverter : public BasePiece
 {
 };
 
-struct Filter
+struct Filter : public BasePiece
 {
     LightColor keep;
 };
 
-struct Tint
+struct Tint : public BasePiece
 {
     LightColor add;
 };
 
-struct Combiner
+struct Combiner : public BasePiece
 {
     AxisDirection out;
     LightColor color; // changes with inputs
