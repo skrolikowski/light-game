@@ -1,17 +1,17 @@
 #pragma once
 
 #include <fstream>
+#include <nlohmann/json.hpp>
 #include <raylib.h>
 #include <stdexcept>
 #include <string>
 
-#include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 #include "Color.h"
 #include "Piece.h"
 
-inline void LoadLevelData(const std::string &path, json &data)
+inline void LoadFileData(const std::string &path, json &data)
 {
     std::ifstream file(path);
     if (!file.is_open())

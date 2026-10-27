@@ -1,10 +1,40 @@
+#include <algorithm>
+#include <nlohmann/json-schema.hpp>
+
+using nlohmann::json_schema::json_validator;
+
 #include "Level.h"
 
-#include <algorithm>
-
-Level::Level(std::string path) : path_(path)
+Level::Level(const json &data)
 {
-    LoadLevelData(path, levelData_);
+    // validate against schema
+    json schema;
+    LoadFileData("res/levels/level.schema.json", schema);
+
+    json_validator validator;
+    try
+    {
+        validator.set_root_schema(schema);
+        validator.validate(data);
+    }
+    catch (const std::exception &e)
+    {
+        throw std::runtime_error(e.what());
+    }
+
+    levelData_ = data;
+
+    title_ = levelData_.value("title", "Default Title");
+    rows_ = levelData_.at("grid").value("rows", 0);
+    cols_ = levelData_.at("grid").value("cols", 0);
+
+    parsePieces();
+    parseSlots();
+}
+
+Level::Level(const std::string &path)
+{
+    LoadFileData(path, levelData_);
 
     title_ = levelData_.value("title", "Default Title");
     rows_ = levelData_.at("grid").value("rows", 0);

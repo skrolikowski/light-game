@@ -39,6 +39,11 @@ struct Cell
     friend bool operator==(const Cell &, const Cell &) = default;
 };
 
+struct LightCell
+{
+    std::vector<LightRay> rays;
+};
+
 template <typename T> class Grid
 {
   public:

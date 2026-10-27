@@ -47,7 +47,7 @@ add_library(src STATIC
     src/Game.cpp)
 
 target_include_directories(src PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(src PUBLIC raylib nlohmann_json)
+target_link_libraries(src PUBLIC raylib nlohmann_json nlohmann_json_schema_validator)
 
 # -- Source Library ----
 

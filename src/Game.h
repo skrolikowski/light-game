@@ -4,25 +4,14 @@
 #include <string>
 
 #include "Grid.h"
+#include "Input.h"
 #include "Level.h"
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
-struct Drag
-{
-    std::optional<Piece> held;
-    std::optional<Coords> from;
-    Slot *slot;
-};
-
 using LightRays = std::vector<LightRay>;
 using CombinerOutputs = std::map<Coords, LightRay>;
-
-struct LightCell
-{
-    std::vector<LightRay> rays;
-};
 
 struct LightField
 {
@@ -45,9 +34,12 @@ struct LightFieldResult
 class Game
 {
   public:
-    void LoadLevel(std::string path);
+    void LoadLevel(const std::string &path);
+    void LoadLevelData(const json &data);
     void Run();
-    bool TrackMouseInput(const Vector2 &v);
+
+    MouseTarget GetMouseTargetAt(Vector2 v);
+    bool TrackMouseInput(MouseInput input);
 
     [[nodiscard]] Grid<Cell> *GetBoard() const noexcept { return board_.get(); }
     [[nodiscard]] Grid<Slot> *GetBag() const noexcept { return bag_.get(); }
@@ -63,6 +55,7 @@ class Game
     static void DrawInventorySlot(const Slot &slot, Rectangle bounds);
 
   private:
+    void buildOutLevel();
     void update(float dt);
     void draw() const;
     void drawLightField() const;

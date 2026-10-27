@@ -13,7 +13,8 @@ class Level
 {
   public:
     Level() = default;
-    Level(std::string path);
+    Level(const json &data);
+    Level(const std::string &path);
 
     std::map<Coords, Piece> GetBoardPieces() { return pieces_; }
     std::map<Coords, Slot> GetSlotPieces() { return slots_; }
@@ -26,7 +27,6 @@ class Level
     json levelData_ = json::object();
 
     std::string title_;
-    std::string path_;
     int rows_ = 0;
     int cols_ = 0;
     std::map<Coords, Piece> pieces_;

@@ -4,40 +4,23 @@
 
 #include "Def.h"
 #include "Game.h"
+#include "Grid.h"
 #include "Piece.h"
 
-void Game::LoadLevel(std::string path)
+void Game::LoadLevelData(const json &data)
+{
+    level_ = Level{ data };
+    buildOutLevel();
+
+    // Immediately simulate board..
+    lightField_ = Simulate(board_.get());
+    lightFieldResult_ = CheckLightField(board_.get(), lightField_);
+}
+
+void Game::LoadLevel(const std::string &path)
 {
     level_ = Level{ path };
-
-    board_ = std::make_unique<Grid<Cell>>(Grid<Cell>{
-        Vector2{ 64.F, 64.F },
-        level_.GetRows(),
-        level_.GetCols(),
-        Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE },
-    });
-
-    // Add pieces to board..
-    std::map<Coords, Piece> pieces = level_.GetBoardPieces();
-    for (auto [coords, piece] : pieces)
-        board_->GetItem(coords)->piece = piece;
-
-    // Add inventory..
-    Vector2 bagOrigin{ SCREEN_WIDTH - (GRID_SLOT_WIDTH + 64.F), 64.F };
-    Vector2 bagSize{ GRID_SLOT_WIDTH, GRID_SLOT_HEIGHT };
-    std::map<Coords, Slot> slots = level_.GetSlotPieces();
-    int numRows = static_cast<int>(slots.size());
-    int numCols = 1;
-    bag_ = std::make_unique<Grid<Slot>>(
-        Grid<Slot>{ bagOrigin, numRows, numCols, bagSize });
-
-    // Add pieces to inventory..
-    bag_->ForEach(
-        [&](Slot &slot, Coords coords)
-        {
-            if (slots.contains(coords))
-                slot = slots[coords];
-        });
+    buildOutLevel();
 
     // Immediately simulate board..
     lightField_ = Simulate(board_.get());
@@ -231,7 +214,20 @@ void Game::Run()
 
 void Game::update(float /*dt*/)
 {
-    if (TrackMouseInput(GetMousePosition()))
+    // Record mouse input..
+    MouseInput input{};
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        input = { .pos = GetMousePosition(),
+            .button = MouseButtonInput::LeftPressed };
+    else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+        input = { .pos = GetMousePosition(),
+            .button = MouseButtonInput::LeftReleased };
+    else if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
+        input = { .pos = GetMousePosition(),
+            .button = MouseButtonInput::RightPressed };
+
+    // Handle mouse input..
+    if (TrackMouseInput(input))
     {
         // Update status..
         lightField_ = Simulate(board_.get());
@@ -244,56 +240,65 @@ void Game::update(float /*dt*/)
     }
 }
 
-bool Game::TrackMouseInput(const Vector2 &v)
+MouseTarget Game::GetMouseTargetAt(Vector2 v)
+{
+    if (Cell *cell = board_->GetItemAt(v))
+        return BoardHit{ .cell = cell, .coords = board_->GetCoordsAt(v) };
+    if (Slot *slot = bag_->GetItemAt(v))
+        return slot;
+    return std::monostate{};
+}
+
+bool Game::TrackMouseInput(MouseInput input)
 {
     bool changed = false;
 
-    // --
-    Cell *cell = board_->GetItemAt(v);
-    Slot *slot = bag_->GetItemAt(v);
+    MouseTarget target = GetMouseTargetAt(input.pos);
+    BoardHit *boardHit = std::get_if<BoardHit>(&target);
+    Slot **slot = std::get_if<Slot *>(&target);
 
     // LEFT MOUSE PRESS - Pick up
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !drag_.held)
+    if (input.button == MouseButtonInput::LeftPressed && !drag_.held)
     {
-        if (slot != nullptr && slot->count > 0)
+        if (slot != nullptr && (*slot)->count > 0)
         {
-            drag_.held = slot->piece;
+            drag_.held = (*slot)->piece;
             drag_.from = std::nullopt;
-            drag_.slot = slot;
+            drag_.slot = (*slot);
 
-            slot->count--;
+            (*slot)->count--;
         }
-        else if (cell != nullptr && cell->isMovable())
+        else if (boardHit->cell != nullptr && boardHit->cell->isMovable())
         {
-            drag_.held = std::exchange(cell->piece, std::monostate{});
-            drag_.from = board_->GetCoordsAt(v);
-            drag_.slot = std::exchange(cell->slot, nullptr);
+            drag_.held = std::exchange(boardHit->cell->piece, std::monostate{});
+            drag_.from = boardHit->coords;
+            drag_.slot = std::exchange(boardHit->cell->slot, nullptr);
             changed = true;
         }
     }
 
     // RIGHT MOUSE PRESS - Rotate Piece
-    if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
+    else if (input.button == MouseButtonInput::RightPressed)
     {
         if (drag_.held.has_value())
         {
             RotatePiece(*drag_.held);
         }
-        else if (cell != nullptr && cell->isMovable())
+        else if (boardHit->cell != nullptr && boardHit->cell->isMovable())
         {
-            RotatePiece(cell->piece);
+            RotatePiece(boardHit->cell->piece);
             changed = true;
         }
     }
 
     // LEFT MOUSE RELEASE - Place
-    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && drag_.held)
+    else if (input.button == MouseButtonInput::LeftReleased && drag_.held)
     {
-        if (cell != nullptr && IsPieceEmpty(cell->piece))
+        if (boardHit->cell != nullptr && IsPieceEmpty(boardHit->cell->piece))
         {
             // drop on board_
-            cell->piece = *drag_.held;
-            cell->slot = drag_.slot;
+            boardHit->cell->piece = *drag_.held;
+            boardHit->cell->slot = drag_.slot;
             changed = true;
         }
         else if (drag_.from.has_value() && drag_.slot == nullptr)
@@ -337,6 +342,38 @@ void Game::DrawInventorySlot(const Slot &slot, Rectangle bounds)
     auto posY = static_cast<int>(bounds.y + (bounds.height * 0.33F));
     std::string text = "x" + std::to_string(slot.count);
     DrawText(text.c_str(), posX, posY, 24, BLACK);
+}
+
+void Game::buildOutLevel()
+{
+    board_ = std::make_unique<Grid<Cell>>(Grid<Cell>{
+        Vector2{ 64.F, 64.F },
+        level_.GetRows(),
+        level_.GetCols(),
+        Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE },
+    });
+
+    // Add pieces to board..
+    std::map<Coords, Piece> pieces = level_.GetBoardPieces();
+    for (auto [coords, piece] : pieces)
+        board_->GetItem(coords)->piece = piece;
+
+    // Add inventory..
+    Vector2 bagOrigin{ SCREEN_WIDTH - (GRID_SLOT_WIDTH + 64.F), 64.F };
+    Vector2 bagSize{ GRID_SLOT_WIDTH, GRID_SLOT_HEIGHT };
+    std::map<Coords, Slot> slots = level_.GetSlotPieces();
+    int numRows = static_cast<int>(slots.size());
+    int numCols = 1;
+    bag_ = std::make_unique<Grid<Slot>>(
+        Grid<Slot>{ bagOrigin, numRows, numCols, bagSize });
+
+    // Add pieces to inventory..
+    bag_->ForEach(
+        [&](Slot &slot, Coords coords)
+        {
+            if (slots.contains(coords))
+                slot = slots[coords];
+        });
 }
 
 void Game::drawLightField() const
