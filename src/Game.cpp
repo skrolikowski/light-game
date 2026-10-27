@@ -268,7 +268,7 @@ bool Game::TrackMouseInput(MouseInput input)
 
             (*slot)->count--;
         }
-        else if (boardHit->cell != nullptr && boardHit->cell->isMovable())
+        else if (boardHit != nullptr && boardHit->cell->isMovable())
         {
             drag_.held = std::exchange(boardHit->cell->piece, std::monostate{});
             drag_.from = boardHit->coords;
@@ -284,7 +284,7 @@ bool Game::TrackMouseInput(MouseInput input)
         {
             RotatePiece(*drag_.held);
         }
-        else if (boardHit->cell != nullptr && boardHit->cell->isMovable())
+        else if (boardHit != nullptr && boardHit->cell->isMovable())
         {
             RotatePiece(boardHit->cell->piece);
             changed = true;
@@ -294,7 +294,7 @@ bool Game::TrackMouseInput(MouseInput input)
     // LEFT MOUSE RELEASE - Place
     else if (input.button == MouseButtonInput::LeftReleased && drag_.held)
     {
-        if (boardHit->cell != nullptr && IsPieceEmpty(boardHit->cell->piece))
+        if (boardHit != nullptr && IsPieceEmpty(boardHit->cell->piece))
         {
             // drop on board_
             boardHit->cell->piece = *drag_.held;
