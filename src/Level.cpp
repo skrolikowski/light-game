@@ -31,7 +31,12 @@ void Level::parsePieces()
             if (row >= 0 and row < rows_ and col >= 0 and col < cols_)
             {
                 Coords coords = { .row = row, .col = col };
-                peices_[coords] = piece;
+
+                // Check if piece is at coords already..
+                if (!pieces_.contains(coords))
+                {
+                    pieces_[coords] = piece;
+                }
             }
         }
     }
