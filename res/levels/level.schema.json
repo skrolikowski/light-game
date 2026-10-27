@@ -1,0 +1,234 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "required": [
+        "title",
+        "grid",
+        "pieces",
+        "inventory"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "title": {
+            "type": "string",
+            "minLength": 1
+        },
+        "grid": {
+            "type": "object",
+            "required": [
+                "rows",
+                "cols"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "rows": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                },
+                "cols": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                }
+            }
+        },
+        "pieces": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/placedPiece"
+            }
+        },
+        "inventory": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/inventoryPiece"
+            }
+        }
+    },
+    "definitions": {
+        "color": {
+            "enum": [
+                "red",
+                "green",
+                "blue",
+                "yellow",
+                "magenta",
+                "cyan",
+                "white"
+            ]
+        },
+        "direction": {
+            "enum": [
+                "north",
+                "south",
+                "east",
+                "west"
+            ]
+        },
+        "coords": {
+            "type": "object",
+            "required": [
+                "row",
+                "col"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "row": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "col": {
+                    "type": "integer",
+                    "minimum": 0
+                }
+            }
+        },
+        "piece": {
+            "type": "object",
+            "required": [
+                "type"
+            ],
+            "oneOf": [
+                {
+                    "properties": {
+                        "type": {
+                            "const": "wall"
+                        }
+                    }
+                },
+                {
+                    "properties": {
+                        "type": {
+                            "const": "inverter"
+                        }
+                    }
+                },
+                {
+                    "properties": {
+                        "type": {
+                            "const": "source"
+                        },
+                        "color": {
+                            "$ref": "#/definitions/color"
+                        },
+                        "direction": {
+                            "$ref": "#/definitions/direction"
+                        },
+                        "strength": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    "required": [
+                        "color",
+                        "direction"
+                    ]
+                },
+                {
+                    "properties": {
+                        "type": {
+                            "const": "target"
+                        },
+                        "color": {
+                            "$ref": "#/definitions/color"
+                        }
+                    },
+                    "required": [
+                        "color"
+                    ]
+                },
+                {
+                    "properties": {
+                        "type": {
+                            "const": "mirror"
+                        },
+                        "rot": {
+                            "enum": [
+                                "/",
+                                "\\"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "rot"
+                    ]
+                },
+                {
+                    "properties": {
+                        "type": {
+                            "const": "booster"
+                        },
+                        "strength": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    "required": [
+                        "strength"
+                    ]
+                },
+                {
+                    "properties": {
+                        "type": {
+                            "enum": [
+                                "filter",
+                                "tint"
+                            ]
+                        },
+                        "color": {
+                            "$ref": "#/definitions/color"
+                        }
+                    },
+                    "required": [
+                        "color"
+                    ]
+                },
+                {
+                    "properties": {
+                        "type": {
+                            "const": "combiner"
+                        },
+                        "out": {
+                            "$ref": "#/definitions/direction"
+                        }
+                    },
+                    "required": [
+                        "out"
+                    ]
+                }
+            ]
+        },
+        "placedPiece": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/piece"
+                }
+            ],
+            "required": [
+                "coords"
+            ],
+            "properties": {
+                "coords": {
+                    "$ref": "#/definitions/coords"
+                }
+            }
+        },
+        "inventoryPiece": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/piece"
+                }
+            ],
+            "required": [
+                "count"
+            ],
+            "properties": {
+                "count": {
+                    "type": "integer",
+                    "minimum": 1
+                }
+            }
+        }
+    }
+}

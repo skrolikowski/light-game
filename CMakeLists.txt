@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# -- BEGIN Dependences ----
+
 # -- Find/Fetch RayLib ----
 set(RAYLIB_VERSION 5.5)
 find_package(raylib ${RAYLIB_VERSION} QUIET)
@@ -23,8 +25,6 @@ if(NOT raylib_FOUND)
     FetchContent_MakeAvailable(raylib)
 endif()
 
-# -- Find/Fetch RayLib ----
-
 # -- Find/Fetch nlohmann/json ----
 FetchContent_Declare(nlohmann_json
     GIT_REPOSITORY https://github.com/nlohmann/json.git
@@ -33,6 +33,13 @@ FetchContent_Declare(nlohmann_json
 FetchContent_MakeAvailable(nlohmann_json)
 
 # -- Find/Fetch nlohmann/json ----
+FetchContent_Declare(nlohmann_json_schema_validator
+    GIT_REPOSITORY https://github.com/pboettch/json-schema-validator.git
+    GIT_TAG 2.3.0
+    GIT_SHALLOW TRUE)
+FetchContent_MakeAvailable(nlohmann_json_schema_validator)
+
+# -- END Dependences ----
 
 # -- Source Library ----
 add_library(src STATIC
