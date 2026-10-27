@@ -249,7 +249,6 @@ bool Game::TrackMouseInput(const Vector2 &v)
     bool changed = false;
 
     // --
-    const Coords coords = bag_->GetCoordsAt(v);
     Cell *cell = board_->GetItemAt(v);
     Slot *slot = bag_->GetItemAt(v);
 
@@ -267,7 +266,7 @@ bool Game::TrackMouseInput(const Vector2 &v)
         else if (cell != nullptr && cell->isMovable())
         {
             drag_.held = std::exchange(cell->piece, std::monostate{});
-            drag_.from = coords;
+            drag_.from = board_->GetCoordsAt(v);
             drag_.slot = std::exchange(cell->slot, nullptr);
             changed = true;
         }

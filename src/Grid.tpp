@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <cmath>
 
 #include "Grid.h"
 
@@ -34,8 +35,8 @@ template <typename T> void Grid<T>::createGrid()
 template <typename T> Coords Grid<T>::GetCoordsAt(Vector2 v) const noexcept
 {
     return {
-        .row = static_cast<int>((v.y - origin_.y) / size_.y),
-        .col = static_cast<int>((v.x - origin_.x) / size_.x),
+        .row = static_cast<int>(std::floor((v.y - origin_.y) / size_.y)),
+        .col = static_cast<int>(std::floor((v.x - origin_.x) / size_.x)),
     };
 }
 

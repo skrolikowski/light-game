@@ -27,8 +27,8 @@ class Level
 
     std::string title_;
     std::string path_;
-    int rows_;
-    int cols_;
+    int rows_ = 0;
+    int cols_ = 0;
     std::map<Coords, Piece> peices_;
     std::map<Coords, Slot> slots_;
 

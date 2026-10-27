@@ -27,8 +27,12 @@ void Level::parsePieces()
         {
             int row = pieceData.at("coords").value("row", 0);
             int col = pieceData.at("coords").value("col", 0);
-            Coords coords = { .row = row, .col = col };
-            peices_[coords] = piece;
+
+            if (row >= 0 and row < rows_ and col >= 0 and col < cols_)
+            {
+                Coords coords = { .row = row, .col = col };
+                peices_[coords] = piece;
+            }
         }
     }
 }
