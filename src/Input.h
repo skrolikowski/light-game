@@ -30,5 +30,5 @@ struct Drag
 {
     std::optional<Piece> held;
     std::optional<Coords> from;
-    Slot *slot;
+    Slot *slot = nullptr;
 };
