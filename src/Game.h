@@ -35,7 +35,7 @@ class Game
 {
   public:
     void LoadLevel(const std::string &path);
-    void LoadLevelData(const json &data);
+    void LoadLevel(const json &data);
     void Run();
 
     MouseTarget GetMouseTargetAt(Vector2 v);

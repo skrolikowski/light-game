@@ -7,7 +7,7 @@
 #include "Grid.h"
 #include "Piece.h"
 
-void Game::LoadLevelData(const json &data)
+void Game::LoadLevel(const json &data)
 {
     level_ = Level{ data };
     buildOutLevel();
