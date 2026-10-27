@@ -41,6 +41,7 @@ class Game
     MouseTarget GetMouseTargetAt(Vector2 v);
     bool TrackMouseInput(MouseInput input);
 
+    [[nodiscard]] const Drag &GetDrag() const noexcept { return drag_; }
     [[nodiscard]] Grid<Cell> *GetBoard() const noexcept { return board_.get(); }
     [[nodiscard]] Grid<Slot> *GetBag() const noexcept { return bag_.get(); }
 

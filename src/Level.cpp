@@ -22,19 +22,17 @@ Level::Level(const json &data)
         throw std::runtime_error(e.what());
     }
 
-    levelData_ = data;
+    title_ = data.value("title", "Default Title");
+    rows_ = data.at("grid").value("rows", 0);
+    cols_ = data.at("grid").value("cols", 0);
 
-    title_ = levelData_.value("title", "Default Title");
-    rows_ = levelData_.at("grid").value("rows", 0);
-    cols_ = levelData_.at("grid").value("cols", 0);
-
-    parsePieces();
-    parseSlots();
+    parsePieces(data);
+    parseSlots(data);
 }
 
-void Level::parsePieces()
+void Level::parsePieces(const json &data)
 {
-    const json &pieces = levelData_.at("pieces");
+    const json &pieces = data.at("pieces");
     const int numPieces = static_cast<int>(pieces.size());
     for (int i = 0; i < numPieces; ++i)
     {
@@ -60,9 +58,9 @@ void Level::parsePieces()
     }
 }
 
-void Level::parseSlots()
+void Level::parseSlots(const json &data)
 {
-    const json &inventory = levelData_.at("inventory");
+    const json &inventory = data.at("inventory");
     const int numSlots = static_cast<int>(inventory.size());
 
     for (int i = 0; i < numSlots; ++i)

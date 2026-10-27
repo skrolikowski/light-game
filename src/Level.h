@@ -16,8 +16,14 @@ class Level
     Level(const json &data);
     Level(const std::string &path) : Level(ReadFile(path)) {}
 
-    std::map<Coords, Piece> GetBoardPieces() { return pieces_; }
-    std::map<Coords, Slot> GetSlotPieces() { return slots_; }
+    [[nodiscard]] const std::map<Coords, Piece> &GetBoardPieces() const noexcept
+    {
+        return pieces_;
+    }
+    [[nodiscard]] const std::map<Coords, Slot> &GetSlotPieces() const noexcept
+    {
+        return slots_;
+    }
 
     [[nodiscard]] std::string GetTitle() const noexcept { return title_; }
     [[nodiscard]] int GetRows() const noexcept { return rows_; }
@@ -31,14 +37,12 @@ class Level
     }
 
   private:
-    json levelData_ = json::object();
-
     std::string title_;
     int rows_ = 0;
     int cols_ = 0;
     std::map<Coords, Piece> pieces_;
     std::map<Coords, Slot> slots_;
 
-    void parsePieces();
-    void parseSlots();
+    void parsePieces(const json &data);
+    void parseSlots(const json &data);
 };
