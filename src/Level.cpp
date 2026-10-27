@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-Level::Level(std::string &path) : path_(path)
+Level::Level(std::string path) : path_(path)
 {
     LoadLevelData(path, levelData_);
 

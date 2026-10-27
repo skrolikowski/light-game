@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <raylib.h>
+#include <stdexcept>
 #include <string>
 
 #include <nlohmann/json.hpp>
@@ -13,10 +14,8 @@ using json = nlohmann::json;
 inline void LoadLevelData(const std::string &path, json &data)
 {
     std::ifstream file(path);
-    if (!file)
-    {
-        std::fprintf(stderr, "Unable to open %s for reading.", path.c_str());
-    }
+    if (!file.is_open())
+        throw std::runtime_error("Failed to open file: " + path);
 
     try
     {
@@ -24,9 +23,13 @@ inline void LoadLevelData(const std::string &path, json &data)
     }
     catch (nlohmann::json::parse_error &exception)
     {
-        std::fprintf(stderr, "Error parsing JSON from `%s`: %s.", path.c_str(),
-            exception.what());
+        throw std::runtime_error("Error parsing JSON from file: " + path);
     }
+}
+
+inline std::size_t GetPieceCount(json &data)
+{
+    return data.at("pieces").size();
 }
 
 inline LightColor ReadColor(const std::string &name)
@@ -65,60 +68,43 @@ inline AxisDirection ReadAxisDirection(const std::string &d)
 
 inline Piece ReadPiece(const json &data)
 {
-    std::string type = data.value("type", "none");
+    std::string type = data.at("type");
 
     if (type == "wall")
         return Wall{};
 
     if (type == "source")
-    {
-        const LightColor color = ReadColor(data.value("color", "white"));
-        const AxisDirection dir =
-            ReadAxisDirection(data.value("direction", "none"));
-        int strength = data.value("strength", 5);
-        return Source{ .color = color, .out = dir, .strength = strength };
-    }
+        return Source{
+            .color = ReadColor(data.at("color")),
+            .out = ReadAxisDirection(data.at("direction")),
+            .strength = data.at("strength"),
+        };
 
     if (type == "target")
-    {
-        const LightColor color = ReadColor(data.value("color", "white"));
-        return Target{ .color = color };
-    }
+        return Target{ .color = ReadColor(data.at("color")) };
 
     if (type == "mirror")
     {
-        std::string rot = data.value("rot", "/");
+        std::string rot = data.at("rot");
         if (rot == "/")
             return Mirror{ .rot = MirrorRotation::ForwardSlash };
         return Mirror{ .rot = MirrorRotation::BackSlash };
     }
 
     if (type == "booster")
-    {
-        int strength = data.value("strength", 5);
-        return Booster{ .strength = strength };
-    }
+        return Booster{ .strength = data.at("strength") };
 
     if (type == "inverter")
         return Inverter{};
 
     if (type == "filter")
-    {
-        const LightColor color = ReadColor(data.value("color", "white"));
-        return Filter{ .keep = color };
-    }
+        return Filter{ .keep = ReadColor(data.at("color")) };
 
     if (type == "tint")
-    {
-        const LightColor color = ReadColor(data.value("color", "white"));
-        return Tint{ .add = color };
-    }
+        return Tint{ .add = ReadColor(data.at("color")) };
 
     if (type == "combiner")
-    {
-        const AxisDirection dir = ReadAxisDirection(data.value("out", "none"));
-        return Combiner{ .out = dir };
-    }
+        return Combiner{ .out = ReadAxisDirection(data.at("out")) };
 
-    throw std::runtime_error("unknown color");
+    return std::monostate{};
 }

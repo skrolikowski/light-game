@@ -13,7 +13,7 @@ class Level
 {
   public:
     Level() = default;
-    Level(std::string &path);
+    Level(std::string path);
 
     std::map<Coords, Piece> GetBoardPieces() { return peices_; }
     std::map<Coords, Slot> GetSlotPieces() { return slots_; }

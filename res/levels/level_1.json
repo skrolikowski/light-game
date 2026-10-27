@@ -35,13 +35,6 @@
         {
             "type": "mirror",
             "rot": "/",
-            "count": 1
-        },
-        {
-            "type": "source",
-            "color": "green",
-            "strength": 1,
-            "direction": "north",
             "count": 2
         }
     ]
