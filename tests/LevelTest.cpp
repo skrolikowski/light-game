@@ -5,7 +5,9 @@
 
 using json = nlohmann::json;
 using nlohmann::json_schema::json_validator;
+using namespace nlohmann::literals;
 
+#include "Board.h"
 #include "Game.h"
 #include "Level.h"
 #include "Loader.h"
@@ -22,8 +24,8 @@ class LevelFixture : public ::testing::TestWithParam<LevelTestCase>
 TEST_P(LevelFixture, MatchesSchema)
 {
     json schema, level;
-    LoadLevelData("res/levels/level.schema.json", schema);
-    LoadLevelData(GetParam().path, level);
+    LoadFileData("res/levels/level.schema.json", schema);
+    LoadFileData(GetParam().path, level);
 
     json_validator validator;
     validator.set_root_schema(schema);
@@ -36,7 +38,7 @@ TEST_P(LevelFixture, LoadsSuccessfully)
     const LevelTestCase &params = GetParam();
 
     json levelData = json::object({});
-    EXPECT_NO_THROW(LoadLevelData(params.path, levelData));
+    EXPECT_NO_THROW(LoadFileData(params.path, levelData));
 }
 
 TEST_P(LevelFixture, NotSolvedOnStart)
@@ -46,7 +48,7 @@ TEST_P(LevelFixture, NotSolvedOnStart)
     Game game;
     game.LoadLevel(params.path);
 
-    Grid<Cell> *board = game.GetBoard();
+    Board *board = game.GetBoard();
     LightField field = Game::Simulate(board);
     LightFieldResult result = Game::CheckLightField(board, field);
 
@@ -59,15 +61,13 @@ TEST_P(LevelFixture, AllPiecesAddedToBoard)
 
     Game game;
     game.LoadLevel(params.path);
-    Grid<Cell> *board = game.GetBoard();
+    Board *board = game.GetBoard();
 
     // Count number of pieces on board..
-    int numPieces = 0;
-    board->ForEach([&](const Cell &cell, Coords coords)
-        { numPieces += IsPieceEmpty(cell.piece) ? 0 : 1; });
+    int numPieces = board->GetNumPieces();
 
     json level;
-    LoadLevelData(GetParam().path, level);
+    LoadFileData(GetParam().path, level);
     EXPECT_EQ(GetPieceCount(level), numPieces);
 }
 
@@ -80,7 +80,7 @@ TEST_P(LevelFixture, AllPiecesAddedToInventory)
     Grid<Slot> *inventory = game.GetBag();
 
     json level;
-    LoadLevelData(GetParam().path, level);
+    LoadFileData(GetParam().path, level);
 
     inventory->ForEach(
         [&](const Slot &s, Coords coords)
@@ -108,3 +108,74 @@ static std::vector<LevelTestCase> AllLevels()
 
 INSTANTIATE_TEST_SUITE_P(
     LevelLoadingTests, LevelFixture, ::testing::ValuesIn(AllLevels()));
+
+// ---
+// --- EDGE CASE TESTING
+// ---
+
+class LevelEdgeCaseFixture : public ::testing::Test
+{
+  protected:
+    Game game;
+
+    void SetUp() override
+    {
+        json level = R"({
+            "title": "Test",
+            "grid": { "rows": 4, "cols": 4 },
+            "pieces": [
+                {
+                    "type": "source",
+                    "coords": { "row": 0, "col": 0 },
+                    "color": "red",
+                    "direction": "south",
+                    "strength": 6
+                },
+                {
+                    "type": "wall",
+                    "coords": { "row": 0, "col": 0 }
+                }
+            ],
+            "inventory": [
+                {
+                    "type": "mirror",
+                    "rot": "/",
+                    "count": 1
+                },
+                {
+                    "type": "mirror",
+                    "rot": "/",
+                    "count": 1
+                }
+            ]
+        })"_json;
+        game.LoadLevel(level);
+    }
+};
+
+TEST_F(LevelEdgeCaseFixture, TwoPiecesAtCoordsFirstWins)
+{
+    Board *board = game.GetBoard();
+    Piece &p = board->GetPieceAt(Coords{});
+
+    ASSERT_TRUE(std::holds_alternative<Source>(p));
+    ASSERT_FALSE(std::holds_alternative<Wall>(p));
+    // const Wall *piece = std::get_if<Wall>(&c00->piece);
+    // EXPECT_TRUE(piece);
+    // -- Load Schema..
+    // json schema;
+    // LoadFileData("res/levels/level.schema.json", schema);
+
+    // // -- Load Validator..
+    // json_validator validator;
+    // validator.set_root_schema(schema);
+    // EXPECT_NO_THROW(validator.validate(level));
+}
+
+TEST_F(LevelEdgeCaseFixture, DuplicateInventoryPiecesAreMerged)
+{
+    Grid<Slot> *bag = game.GetBag();
+}
+
+TEST(LevelLoadingEdgeCaseTests, OutOfBoundsPiecesAreIgnored) {}
+TEST(LevelLoadingEdgeCaseTests, InvalidFormatMissingGrid) {}

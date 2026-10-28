@@ -1,15 +1,14 @@
 #include <gtest/gtest.h>
 
-#include "../src/Color.h"
-#include "../src/Def.h"
-#include "../src/Game.h"
-#include "../src/Grid.h"
-#include "../src/Piece.h"
+#include "Board.h"
+#include "Def.h"
+#include "Game.h"
+#include "Grid.h"
 
 class BleedFixture : public ::testing::Test
 {
   protected:
-    Grid<Cell> board{
+    Board board{
         2,
         2,
         Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE },
@@ -24,7 +23,7 @@ class BleedFixture : public ::testing::Test
 TEST_F(BleedFixture, OutOfBounds)
 {
     Coords coords{ .row = 0, .col = 0 };
-    LightCell &cell = *lc.GetItem(coords);
+    LightCell &cell = *lc.GetItemAt(coords);
     cell.rays.push_back({ .out = AxisDirection::North });
 
     bool hasBleed = Game::Bleed(&board, &lc, coords);
@@ -35,11 +34,11 @@ TEST_F(BleedFixture, NatrualBleed)
 {
     // Start LightCell..
     Coords startCoords{ .row = 0, .col = 0 };
-    LightCell &startCell = *lc.GetItem(startCoords);
+    LightCell &startCell = *lc.GetItemAt(startCoords);
 
     // End LightCell..
     Coords endCoords{ .row = 1, .col = 0 };
-    LightCell &endCell = *lc.GetItem(endCoords);
+    LightCell &endCell = *lc.GetItemAt(endCoords);
 
     // Push Mock LightRay to Start LightCell..
     LightRay mockRay{

@@ -10,7 +10,8 @@ int main()
     SetTargetFPS(60);
 
     Game game;
-    game.LoadLevel("res/levels/level_1.json");
+    std::string path = "res/levels/level_1.json";
+    game.LoadLevel(path);
     game.Run();
 
     CloseWindow();

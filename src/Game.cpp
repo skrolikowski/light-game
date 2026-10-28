@@ -27,35 +27,36 @@ void Game::LoadLevel(const std::string &path)
     lightFieldResult_ = CheckLightField(board_.get(), lightField_);
 }
 
-LightFieldResult Game::CheckLightField(
-    const Grid<Cell> *grid, const LightField &field)
+LightFieldResult Game::CheckLightField(Board *board, const LightField &field)
 {
     LightFieldResult result;
     result.isStable = field.isStable;
-    grid->ForEach(
-        [&](const Cell &cell, Coords coords)
-        {
-            const auto *targetPiece = std::get_if<Target>(&cell.piece);
-            if (targetPiece != nullptr)
-            {
-                result.numTargets++;
-                std::vector<LightRay> rays = field.grid->GetItem(coords)->rays;
+    board->CheckStability(field, result);
+    // board->ForEach(
+    //     [&](const Cell &cell, Coords coords)
+    //     {
+    //         const auto *targetPiece = std::get_if<Target>(&cell.piece);
+    //         if (targetPiece != nullptr)
+    //         {
+    //             result.numTargets++;
+    //             std::vector<LightRay> rays =
+    //             field.grid->GetItem(coords)->rays;
 
-                for (const auto &ray : rays)
-                    if (ray.strength > 0 && ray.color == targetPiece->color)
-                        result.numTargetsLit++;
-            }
-        });
+    //             for (const auto &ray : rays)
+    //                 if (ray.strength > 0 && ray.color == targetPiece->color)
+    //                     result.numTargetsLit++;
+    //         }
+    //     });
     return result;
 }
 
-LightField Game::Propagate(Grid<Cell> *grid, const CombinerOutputs &outputs)
+LightField Game::Propagate(Board *board, const CombinerOutputs &outputs)
 {
     LightField field{
         .grid = std::make_unique<Grid<LightCell>>(Grid<LightCell>{
-            grid->NumRows(),
-            grid->NumCols(),
-            Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE },
+            board->GetNumRows(),
+            board->GetNumCols(),
+            board->GetSize(),
         }),
     };
 
@@ -63,12 +64,12 @@ LightField Game::Propagate(Grid<Cell> *grid, const CombinerOutputs &outputs)
     field.grid->ForEach(
         [&](LightCell &lc, Coords coords)
         {
-            Piece &piece = grid->GetItem(coords)->piece;
+            Piece &piece = board->GetPieceAt(coords);
 
             if (std::holds_alternative<Source>(piece))
             {
                 TransformPiece(piece, lc.rays);
-                Bleed(grid, field.grid.get(), coords);
+                Bleed(board, field.grid.get(), coords);
             }
             else if (std::holds_alternative<Combiner>(piece))
             {
@@ -76,7 +77,7 @@ LightField Game::Propagate(Grid<Cell> *grid, const CombinerOutputs &outputs)
                 if (auto it = outputs.find(coords); it != outputs.end())
                 {
                     lc.rays.push_back(it->second);
-                    Bleed(grid, field.grid.get(), coords);
+                    Bleed(board, field.grid.get(), coords);
                 }
             }
         });
@@ -90,7 +91,7 @@ LightField Game::Propagate(Grid<Cell> *grid, const CombinerOutputs &outputs)
             [&](LightCell &lc, Coords coords)
             {
                 // Ray meets Piece (maybe)..
-                Piece &piece = grid->GetItem(coords)->piece;
+                Piece &piece = board->GetPieceAt(coords);
 
                 // Skip Source Pieces..
                 const auto *sourcePiece = std::get_if<Source>(&piece);
@@ -106,7 +107,7 @@ LightField Game::Propagate(Grid<Cell> *grid, const CombinerOutputs &outputs)
                 TransformPiece(piece, lc.rays);
 
                 // Bleed to next coords..
-                if (Bleed(grid, field.grid.get(), coords))
+                if (Bleed(board, field.grid.get(), coords))
                     lightsPropagating += 1;
             });
 
@@ -115,7 +116,7 @@ LightField Game::Propagate(Grid<Cell> *grid, const CombinerOutputs &outputs)
     return field;
 }
 
-LightField Game::Simulate(Grid<Cell> *grid)
+LightField Game::Simulate(Board *board)
 {
     LightField field;
     CombinerOutputs outputs;
@@ -125,14 +126,14 @@ LightField Game::Simulate(Grid<Cell> *grid)
     for (int i = 0; i < MAX_COMBINER_SAMPLES; ++i)
     {
         // 1) Handle Pieces (- Combiner)..
-        field = Propagate(grid, outputs);
+        field = Propagate(board, outputs);
 
         // 3) Handle Combiner Pieces..
         CombinerOutputs next;
         field.grid->ForEach(
             [&](LightCell &lc, Coords coords)
             {
-                Piece &piece = grid->GetItem(coords)->piece;
+                Piece &piece = board->GetPieceAt(coords);
                 const auto *combinerPiece = std::get_if<Combiner>(&piece);
                 if (combinerPiece != nullptr)
                 {
@@ -162,9 +163,9 @@ LightField Game::Simulate(Grid<Cell> *grid)
     return field;
 }
 
-bool Game::Bleed(Grid<Cell> *grid, Grid<LightCell> *lightGrid, Coords coords)
+bool Game::Bleed(Board *board, Grid<LightCell> *lightGrid, Coords coords)
 {
-    LightCell *cell = lightGrid->GetItem(coords);
+    LightCell *cell = lightGrid->GetItemAt(coords);
     if (cell == nullptr)
         return false;
     std::size_t bleedCount = 0;
@@ -182,7 +183,7 @@ bool Game::Bleed(Grid<Cell> *grid, Grid<LightCell> *lightGrid, Coords coords)
 
             // ..bleed to next cell..
             const Coords nextCoords = Grid<Cell>::Translate(ray.out, coords);
-            if (Grid<Cell>::InBounds(grid, nextCoords))
+            if (board->InBounds(nextCoords))
             {
                 const int nextStrength = ray.strength - 1;
                 LightRay nextRay{
@@ -191,7 +192,7 @@ bool Game::Bleed(Grid<Cell> *grid, Grid<LightCell> *lightGrid, Coords coords)
                     .strengthMax = nextStrength,
                     .in = InvertDirection(ray.out),
                 };
-                lightGrid->GetItem(nextCoords)->rays.push_back(nextRay);
+                lightGrid->GetItemAt(nextCoords)->rays.push_back(nextRay);
                 bleedCount += 1;
             }
 
@@ -242,7 +243,7 @@ void Game::update(float /*dt*/)
 
 MouseTarget Game::GetMouseTargetAt(Vector2 v)
 {
-    if (Cell *cell = board_->GetItemAt(v))
+    if (Cell *cell = board_->GetCellAt(v))
         return BoardHit{ .cell = cell, .coords = board_->GetCoordsAt(v) };
     if (Slot *slot = bag_->GetItemAt(v))
         return slot;
@@ -304,7 +305,7 @@ bool Game::TrackMouseInput(MouseInput input)
         else if (drag_.from.has_value() && drag_.slot == nullptr)
         {
             // snap back to board..
-            board_->GetItem(*drag_.from)->piece = *drag_.held;
+            board_->GetPieceAt(*drag_.from) = *drag_.held;
             changed = true;
         }
         else
@@ -346,17 +347,23 @@ void Game::DrawInventorySlot(const Slot &slot, Rectangle bounds)
 
 void Game::buildOutLevel()
 {
-    board_ = std::make_unique<Grid<Cell>>(Grid<Cell>{
+    board_ = std::make_unique<Board>(Board{
         Vector2{ 64.F, 64.F },
         level_.GetRows(),
         level_.GetCols(),
         Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE },
     });
+    // board_ = std::make_unique<Grid<Cell>>(Grid<Cell>{
+    //     Vector2{ 64.F, 64.F },
+    //     level_.GetRows(),
+    //     level_.GetCols(),
+    //     Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE },
+    // });
 
     // Add pieces to board..
-    std::map<Coords, Piece> pieces = level_.GetBoardPieces();
+    const std::map<Coords, Piece> &pieces = level_.GetBoardPieces();
     for (auto [coords, piece] : pieces)
-        board_->GetItem(coords)->piece = piece;
+        board_->GetPieceAt(coords) = piece;
 
     // Add inventory..
     Vector2 bagOrigin{ SCREEN_WIDTH - (GRID_SLOT_WIDTH + 64.F), 64.F };
@@ -384,7 +391,7 @@ void Game::drawLightField() const
         [&](const LightCell &cell, Coords coords)
         {
             for (const LightRay &ray : cell.rays)
-                DrawLightRay(ray, board_->GetRect(coords));
+                DrawLightRay(ray, board_->GetRectAt(coords));
         });
 
     EndBlendMode();
@@ -400,12 +407,11 @@ void Game::draw() const
     drawLightField();
 
     // Draw pieces on top of light..
-    board_->ForEach([&](const Cell &cell, Coords coords)
-        { DrawPiece(cell.piece, board_->GetRect(coords)); });
+    board_->DrawPieces();
 
     // Draw bag_ w/ Slots..
     bag_->ForEach([&](const Slot &slot, Coords coords)
-        { DrawInventorySlot(slot, bag_->GetRect(coords)); });
+        { DrawInventorySlot(slot, bag_->GetRectAt(coords)); });
 
     // Draw drag_;
     if (drag_.held)

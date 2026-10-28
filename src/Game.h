@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include "Board.h"
 #include "Grid.h"
 #include "Input.h"
 #include "Level.h"
@@ -42,16 +43,14 @@ class Game
     bool TrackMouseInput(MouseInput input);
 
     [[nodiscard]] const Drag &GetDrag() const noexcept { return drag_; }
-    [[nodiscard]] Grid<Cell> *GetBoard() const noexcept { return board_.get(); }
+    [[nodiscard]] Board *GetBoard() const noexcept { return board_.get(); }
     [[nodiscard]] Grid<Slot> *GetBag() const noexcept { return bag_.get(); }
 
     static LightFieldResult CheckLightField(
-        const Grid<Cell> *grid, const LightField &field);
-    static LightField Propagate(
-        Grid<Cell> *grid, const CombinerOutputs &outputs);
-    static bool Bleed(
-        Grid<Cell> *grid, Grid<LightCell> *lightGrid, Coords coords);
-    static LightField Simulate(Grid<Cell> *grid);
+        Board *board, const LightField &field);
+    static LightField Propagate(Board *board, const CombinerOutputs &outputs);
+    static bool Bleed(Board *board, Grid<LightCell> *lightGrid, Coords coords);
+    static LightField Simulate(Board *board);
 
     static void DrawInventorySlot(const Slot &slot, Rectangle bounds);
 
@@ -65,6 +64,6 @@ class Game
     Level level_;
     LightField lightField_;
     LightFieldResult lightFieldResult_{};
-    std::unique_ptr<Grid<Cell>> board_;
+    std::unique_ptr<Board> board_;
     std::unique_ptr<Grid<Slot>> bag_;
 };

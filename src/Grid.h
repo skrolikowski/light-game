@@ -51,17 +51,17 @@ template <typename T> class Grid
     Grid(int rows, int cols, Vector2 size);
     Grid(Vector2 origin, int rows, int cols, Vector2 size);
 
-    [[nodiscard]] const T *GetItem(Coords coords) const noexcept;
-    [[nodiscard]] T *GetItem(Coords coords) noexcept;
+    [[nodiscard]] const T *GetItemAt(Coords coords) const noexcept;
+    [[nodiscard]] T *GetItemAt(Coords coords) noexcept;
     [[nodiscard]] const T *GetItemAt(Vector2 v) const noexcept;
     [[nodiscard]] T *GetItemAt(Vector2 v) noexcept;
-    [[nodiscard]] Vector2 GetSize() const noexcept { return size_; }
+    [[nodiscard]] const Vector2 &GetSize() const noexcept { return size_; }
     [[nodiscard]] Coords GetCoordsAt(Vector2) const noexcept;
     [[nodiscard]] Vector2 GetTopLeft(Coords coords) const noexcept;
-    [[nodiscard]] Rectangle GetRect(Coords coords) const noexcept;
+    [[nodiscard]] Rectangle GetRectAt(Coords coords) const noexcept;
 
-    [[nodiscard]] int NumCols() const noexcept { return cols_; }
-    [[nodiscard]] int NumRows() const noexcept { return rows_; }
+    [[nodiscard]] int GetNumCols() const noexcept { return cols_; }
+    [[nodiscard]] int GetNumRows() const noexcept { return rows_; }
 
     static bool InBounds(const Grid *grid, Coords coords);
     static bool InGrid(const Grid *grid, Vector2 v);
