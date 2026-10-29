@@ -32,7 +32,7 @@ class Level
     static json ReadFile(const std::string &path)
     {
         json d;
-        LoadFileData(path, d);
+        Loader::LoadFileData(path, d);
         return d;
     }
 

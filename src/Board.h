@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <raylib.h>
 
 #include "Grid.h"
@@ -8,9 +9,12 @@
 struct LightField;
 struct LightFieldResult;
 
+using CellGrid = Grid<Cell>;
+
 class Board
 {
   public:
+    Board() = default;
     Board(int rows, int cols, const Vector2 &size);
     Board(const Vector2 &origin, int rows, int cols, const Vector2 &size);
 
@@ -25,6 +29,7 @@ class Board
     [[nodiscard]] Coords GetCoordsAt(Vector2 v) const;
     [[nodiscard]] Rectangle GetRectAt(Coords coords) const;
 
+    void AddPieces(const std::map<Coords, Piece> &pieces) const;
     void CheckStability(const LightField &field, LightFieldResult &out);
     void Draw() const { grid_->Draw(); }
 
@@ -41,5 +46,5 @@ class Board
     }
 
   private:
-    std::unique_ptr<Grid<Cell>> grid_;
+    std::unique_ptr<CellGrid> grid_;
 };

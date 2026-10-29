@@ -3,13 +3,18 @@
 
 Board::Board(int rows, int cols, const Vector2 &size)
 {
-    grid_ = std::make_unique<Grid<Cell>>(Grid<Cell>{ rows, cols, size });
+    grid_ = std::make_unique<CellGrid>(CellGrid{ rows, cols, size });
 }
 
 Board::Board(const Vector2 &origin, int rows, int cols, const Vector2 &size)
 {
-    grid_ =
-        std::make_unique<Grid<Cell>>(Grid<Cell>{ origin, rows, cols, size });
+    grid_ = std::make_unique<CellGrid>(CellGrid{ origin, rows, cols, size });
+}
+
+void Board::AddPieces(const std::map<Coords, Piece> &pieces) const
+{
+    for (auto [coords, piece] : pieces)
+        GetPieceAt(coords) = piece;
 }
 
 int Board::GetNumPieces() const noexcept

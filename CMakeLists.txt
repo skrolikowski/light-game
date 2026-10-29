@@ -43,6 +43,7 @@ FetchContent_MakeAvailable(nlohmann_json_schema_validator)
 
 # -- Source Library ----
 add_library(src STATIC
+    src/Bag.cpp
     src/Board.cpp
     src/Level.cpp
     src/Game.cpp)

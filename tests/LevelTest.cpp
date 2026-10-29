@@ -2,11 +2,13 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json-schema.hpp>
 #include <nlohmann/json.hpp>
+#include <vector>
 
 using json = nlohmann::json;
 using nlohmann::json_schema::json_validator;
 using namespace nlohmann::literals;
 
+#include "Bag.h"
 #include "Board.h"
 #include "Game.h"
 #include "Level.h"
@@ -24,8 +26,8 @@ class LevelFixture : public ::testing::TestWithParam<LevelTestCase>
 TEST_P(LevelFixture, MatchesSchema)
 {
     json schema, level;
-    LoadFileData("res/levels/level.schema.json", schema);
-    LoadFileData(GetParam().path, level);
+    Loader::LoadFileData("res/levels/level.schema.json", schema);
+    Loader::LoadFileData(GetParam().path, level);
 
     json_validator validator;
     validator.set_root_schema(schema);
@@ -38,7 +40,7 @@ TEST_P(LevelFixture, LoadsSuccessfully)
     const LevelTestCase &params = GetParam();
 
     json levelData = json::object({});
-    EXPECT_NO_THROW(LoadFileData(params.path, levelData));
+    EXPECT_NO_THROW(Loader::LoadFileData(params.path, levelData));
 }
 
 TEST_P(LevelFixture, NotSolvedOnStart)
@@ -67,8 +69,8 @@ TEST_P(LevelFixture, AllPiecesAddedToBoard)
     int numPieces = board->GetNumPieces();
 
     json level;
-    LoadFileData(GetParam().path, level);
-    EXPECT_EQ(GetPieceCount(level), numPieces);
+    Loader::LoadFileData(GetParam().path, level);
+    EXPECT_EQ(Loader::GetPieceCount(level), numPieces);
 }
 
 TEST_P(LevelFixture, AllPiecesAddedToInventory)
@@ -77,18 +79,19 @@ TEST_P(LevelFixture, AllPiecesAddedToInventory)
 
     Game game;
     game.LoadLevel(params.path);
-    Grid<Slot> *inventory = game.GetBag();
 
     json level;
-    LoadFileData(GetParam().path, level);
+    Loader::LoadFileData(GetParam().path, level);
 
-    inventory->ForEach(
-        [&](const Slot &s, Coords coords)
-        {
-            std::size_t count =
-                GetInventoryPieceCount(level, PieceToString(s.piece));
-            EXPECT_EQ(s.count, count);
-        });
+    Bag *bag = game.GetBag();
+    std::map<Piece *, int> pieces = bag->GetPieces();
+
+    for (const auto &[piece, count] : pieces)
+    {
+        std::size_t qty = Loader::GetInventoryPieceCount(
+            level, Loader::PieceToString(*piece));
+        EXPECT_EQ(qty, count);
+    }
 }
 
 // TODO: Brute Force is solvable check..
@@ -164,7 +167,7 @@ TEST_F(LevelEdgeCaseFixture, TwoPiecesAtCoordsFirstWins)
     // EXPECT_TRUE(piece);
     // -- Load Schema..
     // json schema;
-    // LoadFileData("res/levels/level.schema.json", schema);
+    // Loader::LoadFileData("res/levels/level.schema.json", schema);
 
     // // -- Load Validator..
     // json_validator validator;
@@ -174,7 +177,7 @@ TEST_F(LevelEdgeCaseFixture, TwoPiecesAtCoordsFirstWins)
 
 TEST_F(LevelEdgeCaseFixture, DuplicateInventoryPiecesAreMerged)
 {
-    Grid<Slot> *bag = game.GetBag();
+    Bag *bag = game.GetBag();
 }
 
 TEST(LevelLoadingEdgeCaseTests, OutOfBoundsPiecesAreIgnored) {}

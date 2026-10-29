@@ -9,7 +9,7 @@ Level::Level(const json &data)
 {
     // validate against schema
     json schema;
-    LoadFileData("res/levels/level.schema.json", schema);
+    Loader::LoadFileData("res/levels/level.schema.json", schema);
 
     json_validator validator;
     try
@@ -37,7 +37,7 @@ void Level::parsePieces(const json &data)
     for (int i = 0; i < numPieces; ++i)
     {
         const json &pieceData = pieces.at(static_cast<unsigned long>(i));
-        Piece piece = ReadPiece(pieceData);
+        Piece piece = Loader::ReadPiece(pieceData);
 
         if (pieceData.contains("coords"))
         {
@@ -66,7 +66,7 @@ void Level::parseSlots(const json &data)
     for (int i = 0; i < numSlots; ++i)
     {
         const json &invData = inventory.at(static_cast<std::size_t>(i));
-        Piece piece = ReadPiece(invData);
+        Piece piece = Loader::ReadPiece(invData);
         int pieceCount = invData.at("count");
 
         auto it = std::ranges::find_if(slots_,

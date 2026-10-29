@@ -245,7 +245,7 @@ MouseTarget Game::GetMouseTargetAt(Vector2 v)
 {
     if (Cell *cell = board_->GetCellAt(v))
         return BoardHit{ .cell = cell, .coords = board_->GetCoordsAt(v) };
-    if (Slot *slot = bag_->GetItemAt(v))
+    if (Slot *slot = bag_->GetSlotAt(v))
         return slot;
     return std::monostate{};
 }
@@ -319,68 +319,26 @@ bool Game::TrackMouseInput(MouseInput input)
     return changed;
 }
 
-void Game::DrawInventorySlot(const Slot &slot, Rectangle bounds)
-{
-    DrawRectangleRoundedLinesEx(bounds, 0.2F, 20, 1.F, BLACK);
-    DrawRectangleRounded(bounds, 0.2F, 20, (slot.count > 0 ? WHITE : DARKGRAY));
-
-    // Draw Slot Piece
-    Rectangle icon = Inset(
-        Rectangle{
-            .x = bounds.x,
-            .y = bounds.y,
-            .width = GRID_CELL_SIZE,
-            .height = GRID_CELL_SIZE,
-        },
-        Vector2{
-            GRID_CELL_SIZE * 0.1F,
-            GRID_CELL_SIZE * 0.1F,
-        });
-    DrawPiece(slot.piece, icon);
-
-    // Draw Quantity..
-    auto posX = static_cast<int>(bounds.x + (bounds.width * 0.66F));
-    auto posY = static_cast<int>(bounds.y + (bounds.height * 0.33F));
-    std::string text = "x" + std::to_string(slot.count);
-    DrawText(text.c_str(), posX, posY, 24, BLACK);
-}
-
 void Game::buildOutLevel()
 {
+    // Board.. (aka play field)
     board_ = std::make_unique<Board>(Board{
         Vector2{ 64.F, 64.F },
         level_.GetRows(),
         level_.GetCols(),
         Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE },
     });
-    // board_ = std::make_unique<Grid<Cell>>(Grid<Cell>{
-    //     Vector2{ 64.F, 64.F },
-    //     level_.GetRows(),
-    //     level_.GetCols(),
-    //     Vector2{ GRID_CELL_SIZE, GRID_CELL_SIZE },
-    // });
+    board_->AddPieces(level_.GetBoardPieces());
 
-    // Add pieces to board..
-    const std::map<Coords, Piece> &pieces = level_.GetBoardPieces();
-    for (auto [coords, piece] : pieces)
-        board_->GetPieceAt(coords) = piece;
-
-    // Add inventory..
-    Vector2 bagOrigin{ SCREEN_WIDTH - (GRID_SLOT_WIDTH + 64.F), 64.F };
-    Vector2 bagSize{ GRID_SLOT_WIDTH, GRID_SLOT_HEIGHT };
+    // Bag.. (aka inventory)
     std::map<Coords, Slot> slots = level_.GetSlotPieces();
-    int numRows = static_cast<int>(slots.size());
-    int numCols = 1;
-    bag_ = std::make_unique<Grid<Slot>>(
-        Grid<Slot>{ bagOrigin, numRows, numCols, bagSize });
-
-    // Add pieces to inventory..
-    bag_->ForEach(
-        [&](Slot &slot, Coords coords)
-        {
-            if (slots.contains(coords))
-                slot = slots[coords];
-        });
+    bag_ = std::make_unique<Bag>(Bag{
+        Vector2{ SCREEN_WIDTH - (GRID_SLOT_WIDTH + 64.F), 64.F },
+        static_cast<int>(slots.size()),
+        1,
+        Vector2{ GRID_SLOT_WIDTH, GRID_SLOT_HEIGHT },
+    });
+    bag_->AddPieces(slots);
 }
 
 void Game::drawLightField() const
@@ -406,12 +364,8 @@ void Game::draw() const
 
     drawLightField();
 
-    // Draw pieces on top of light..
     board_->DrawPieces();
-
-    // Draw bag_ w/ Slots..
-    bag_->ForEach([&](const Slot &slot, Coords coords)
-        { DrawInventorySlot(slot, bag_->GetRectAt(coords)); });
+    bag_->Draw();
 
     // Draw drag_;
     if (drag_.held)

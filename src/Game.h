@@ -3,8 +3,8 @@
 #include <memory>
 #include <string>
 
+#include "Bag.h"
 #include "Board.h"
-#include "Grid.h"
 #include "Input.h"
 #include "Level.h"
 
@@ -44,15 +44,13 @@ class Game
 
     [[nodiscard]] const Drag &GetDrag() const noexcept { return drag_; }
     [[nodiscard]] Board *GetBoard() const noexcept { return board_.get(); }
-    [[nodiscard]] Grid<Slot> *GetBag() const noexcept { return bag_.get(); }
+    [[nodiscard]] Bag *GetBag() const noexcept { return bag_.get(); }
 
     static LightFieldResult CheckLightField(
         Board *board, const LightField &field);
     static LightField Propagate(Board *board, const CombinerOutputs &outputs);
     static bool Bleed(Board *board, Grid<LightCell> *lightGrid, Coords coords);
     static LightField Simulate(Board *board);
-
-    static void DrawInventorySlot(const Slot &slot, Rectangle bounds);
 
   private:
     void buildOutLevel();
@@ -65,5 +63,5 @@ class Game
     LightField lightField_;
     LightFieldResult lightFieldResult_{};
     std::unique_ptr<Board> board_;
-    std::unique_ptr<Grid<Slot>> bag_;
+    std::unique_ptr<Bag> bag_;
 };
